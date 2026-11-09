@@ -1,0 +1,74 @@
+[
+  {
+    "robotId": "Drone",
+    "taskId": "Task_Coordinate",
+    "messageName": "weedPosition",
+    "dataType": "Coordinate",
+    "semanticDescription": "Posizione geografica della zona di interesse con le erbacce da rimuovere rilevata dal Drone",
+    "semanticConcept": "work_area_location",
+    "receiverTaskId": "Task_Movimento",
+    "receiverDataType": "Coordinate",
+    "receiverSemanticDescription": "Posizione della zona di lavoro da raggiungere per il taglio delle erbacce",
+    "receiverSemanticConcept": "work_area_location"
+  },
+  {
+    "robotId": "Tagliatore",
+    "taskId": "Task_Autovalutazione",
+    "messageName": "availability",
+    "dataType": "Boolean",
+    "semanticDescription": "Stato booleano che indica se il Tagliatore è disponibile per partecipare alla missione",
+    "semanticConcept": "robot_availability",
+    "receiverTaskId": "Task_CheckAvailability",
+    "receiverDataType": "Boolean",
+    "receiverSemanticDescription": "Valore booleano che indica se il Tagliatore è disponibile per la missione",
+    "receiverSemanticConcept": "robot_availability"
+  },
+  {
+    "robotId": "Drone",
+    "taskId": "Task_SelectClosestTractor",
+    "messageName": "closestTractor",
+    "dataType": "CoordinateTrattoreVicino",
+    "semanticDescription": "Coordinate e identificativo univoco del Tagliatore più vicino selezionato dal Drone",
+    "semanticConcept": "selected_tractor_location",
+    "receiverTaskId": "Task_Movimento",
+    "receiverDataType": "CoordinateTrattoreVicino",
+    "receiverSemanticDescription": "Coordinate e identificativo del Tagliatore selezionato per intervenire",
+    "receiverSemanticConcept": "selected_tractor_location"
+  },
+  {
+    "robotId": "Tagliatore",
+    "taskId": "Task_Taglio",
+    "messageName": "fieldReady",
+    "dataType": "Boolean",
+    "semanticDescription": "Segnale booleano che indica che il terreno è stato liberato dalle erbacce ed è pronto per lo scavo",
+    "semanticConcept": "field_ready_for_digging",
+    "receiverTaskId": "Task_Posizionamento",
+    "receiverDataType": "Boolean",
+    "receiverSemanticDescription": "Segnale che conferma che il terreno è pronto per lo scavo",
+    "receiverSemanticConcept": "field_ready_for_digging"
+  },
+  {
+    "robotId": "Scavatore",
+    "taskId": "Task_Scavo",
+    "messageName": "digDone",
+    "dataType": "Boolean",
+    "semanticDescription": "Conferma booleana del completamento dello scavo e della preparazione del terreno per la semina",
+    "semanticConcept": "digging_completed",
+    "receiverTaskId": "Task_Carica",
+    "receiverDataType": "Boolean",
+    "receiverSemanticDescription": "Conferma che lo scavo è stato completato ed è possibile procedere alla semina",
+    "receiverSemanticConcept": "digging_completed"
+  },
+  {
+    "robotId": "Seminatore",
+    "taskId": "Task_Semina",
+    "messageName": "seedingDone",
+    "dataType": "Boolean",
+    "semanticDescription": "Notifica finale che certifica il completamento della semina e della missione",
+    "semanticConcept": "mission_completed",
+    "receiverTaskId": null,
+    "receiverDataType": null,
+    "receiverSemanticDescription": "Notifica che certifica il completamento della missione",
+    "receiverSemanticConcept": "mission_completed"
+  }
+]

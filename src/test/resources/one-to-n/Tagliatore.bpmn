@@ -1,0 +1,50 @@
+<?xml version='1.0' encoding='utf-8'?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:camunda="http://camunda.org/schema/1.0/bpmn" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="Def_Cutter" targetNamespace="http://it.univaq.disim/cutter" exporter="Camunda Modeler" exporterVersion="5.0.0">
+  <bpmn:process id="Tagliatore" name="Cutter Basic Process" isExecutable="true">
+    <bpmn:startEvent id="Start_C" name="Inizio">
+      <bpmn:outgoing>f0</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:serviceTask id="Task_Autovalutazione" name="Valuta disponibilità operativa" camunda:class="it.univaq.disim.cutter.AvailabilityDelegate"><bpmn:extensionElements><camunda:inputOutput><camunda:outputParameter name="producedData">Boolean</camunda:outputParameter></camunda:inputOutput></bpmn:extensionElements><bpmn:incoming>f0</bpmn:incoming><bpmn:outgoing>f1</bpmn:outgoing></bpmn:serviceTask><bpmn:serviceTask id="Task_Movimento" name="Movimento verso bersaglio" camunda:class="it.univaq.disim.cutter.MovementDelegate">
+      <bpmn:extensionElements>
+        <camunda:inputOutput><camunda:inputParameter name="requiredData">MapData</camunda:inputParameter></camunda:inputOutput></bpmn:extensionElements>
+      <bpmn:incoming>f1</bpmn:incoming>
+      <bpmn:outgoing>f2</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:serviceTask id="Task_Taglio" name="Taglia erbacce" camunda:class="it.univaq.disim.cutter.CuttingDelegate">
+      <bpmn:extensionElements>
+        <camunda:inputOutput><camunda:outputParameter name="producedData">Boolean</camunda:outputParameter>
+      </camunda:inputOutput></bpmn:extensionElements>
+      <bpmn:incoming>f2</bpmn:incoming>
+      <bpmn:outgoing>f3</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:endEvent id="End_C" name="Fine">
+      <bpmn:incoming>f3</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:sequenceFlow id="f0" sourceRef="Start_C" targetRef="Task_Autovalutazione" />
+  <bpmn:sequenceFlow id="f1" sourceRef="Task_Autovalutazione" targetRef="Task_Movimento" />
+    <bpmn:sequenceFlow id="f2" sourceRef="Task_Movimento" targetRef="Task_Taglio" />
+    <bpmn:sequenceFlow id="f3" sourceRef="Task_Taglio" targetRef="End_C" />
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="D1">
+    <bpmndi:BPMNPlane id="P1" bpmnElement="Tagliatore">
+      <bpmndi:BPMNShape id="S_Start_di" bpmnElement="Start_C">
+        <dc:Bounds x="152" y="122" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="157" y="165" width="26" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="S1" bpmnElement="Task_Movimento">
+        <dc:Bounds x="410.0" y="100" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="S2" bpmnElement="Task_Taglio">
+        <dc:Bounds x="580.0" y="100" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="S_End_di" bpmnElement="End_C">
+        <dc:Bounds x="752.0" y="122" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="600" y="165" width="20" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_Autovalutazione_di" bpmnElement="Task_Autovalutazione"><dc:Bounds x="250" y="100" width="100" height="80" /></bpmndi:BPMNShape><bpmndi:BPMNEdge id="f0_di" bpmnElement="f0"><di:waypoint x="188.0" y="140.0" /><di:waypoint x="250.0" y="140.0" /></bpmndi:BPMNEdge><bpmndi:BPMNEdge id="f1_di" bpmnElement="f1"><di:waypoint x="350.0" y="140.0" /><di:waypoint x="410.0" y="140.0" /></bpmndi:BPMNEdge><bpmndi:BPMNEdge id="f2_di" bpmnElement="f2"><di:waypoint x="510.0" y="140.0" /><di:waypoint x="580.0" y="140.0" /></bpmndi:BPMNEdge><bpmndi:BPMNEdge id="f3_di" bpmnElement="f3"><di:waypoint x="680.0" y="140.0" /><di:waypoint x="752.0" y="140.0" /></bpmndi:BPMNEdge></bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

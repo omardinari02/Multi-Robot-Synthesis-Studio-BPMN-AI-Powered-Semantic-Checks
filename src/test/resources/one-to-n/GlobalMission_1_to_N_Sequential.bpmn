@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                  id="Definitions_1_to_N_Sequential"
+                  targetNamespace="http://it.univaq.disim/mrs/one-to-n-sequential">
+  <bpmn:message id="Msg_weedPosition" name="weedPosition" />
+  <bpmn:message id="Msg_digPlan" name="digPlan" />
+  <bpmn:message id="Msg_seedPlan" name="seedPlan" />
+  <bpmn:collaboration id="Collaboration_1_to_N_Sequential">
+    <bpmn:participant id="Part_Global_Choreography" name="Global Choreography Flow" processRef="Global_Choreography_Process_1_to_N_Sequential" />
+    <bpmn:participant id="Part_Drone" name="Drone" />
+    <bpmn:participant id="Part_Tagliatore" name="Tagliatore" />
+    <bpmn:participant id="Part_Scavatore" name="Scavatore" />
+    <bpmn:participant id="Part_Seminatore" name="Seminatore" />
+    <bpmn:messageFlow id="MessageFlow_weedPosition" sourceRef="Part_Drone" targetRef="Part_Tagliatore" messageRef="Msg_weedPosition" />
+    <bpmn:messageFlow id="MessageFlow_digPlan" sourceRef="Part_Drone" targetRef="Part_Scavatore" messageRef="Msg_digPlan" />
+    <bpmn:messageFlow id="MessageFlow_seedPlan" sourceRef="Part_Drone" targetRef="Part_Seminatore" messageRef="Msg_seedPlan" />
+  </bpmn:collaboration>
+  <bpmn:process id="Global_Choreography_Process_1_to_N_Sequential" name="Global sequential 1-to-N choreography" isExecutable="false">
+    <bpmn:startEvent id="Start_1_to_N_Sequential">
+      <bpmn:outgoing>Flow_Start_Weed</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:task id="Task_WeedPosition" name="Invia mappa al Tagliatore">
+      <bpmn:incoming>Flow_Start_Weed</bpmn:incoming>
+      <bpmn:outgoing>Flow_Weed_Dig</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:task id="Task_DigPlan" name="Invia mappa allo Scavatore">
+      <bpmn:incoming>Flow_Weed_Dig</bpmn:incoming>
+      <bpmn:outgoing>Flow_Dig_Seed</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:task id="Task_SeedPlan" name="Invia mappa al Seminatore">
+      <bpmn:incoming>Flow_Dig_Seed</bpmn:incoming>
+      <bpmn:outgoing>Flow_Seed_End</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:endEvent id="End_1_to_N_Sequential">
+      <bpmn:incoming>Flow_Seed_End</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:sequenceFlow id="Flow_Start_Weed" sourceRef="Start_1_to_N_Sequential" targetRef="Task_WeedPosition" />
+    <bpmn:sequenceFlow id="Flow_Weed_Dig" sourceRef="Task_WeedPosition" targetRef="Task_DigPlan" />
+    <bpmn:sequenceFlow id="Flow_Dig_Seed" sourceRef="Task_DigPlan" targetRef="Task_SeedPlan" />
+    <bpmn:sequenceFlow id="Flow_Seed_End" sourceRef="Task_SeedPlan" targetRef="End_1_to_N_Sequential" />
+  </bpmn:process>
+</bpmn:definitions>

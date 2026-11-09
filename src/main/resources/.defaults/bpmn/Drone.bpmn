@@ -1,0 +1,89 @@
+<?xml version='1.0' encoding='utf-8'?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:camunda="http://camunda.org/schema/1.0/bpmn" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="Definitions_Drone" targetNamespace="http://it.univaq.disim/drone" exporter="Camunda Modeler" exporterVersion="5.0.0">
+  <bpmn:process id="Drone" name="Drone Basic Process" isExecutable="true">
+    <bpmn:startEvent id="Start_Drone" name="Avvio">
+      <bpmn:outgoing>f1</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:serviceTask id="Task_Decollo" name="Decollo"><bpmn:extensionElements><camunda:inputOutput><camunda:outputParameter name="effects">drone_airborne=true</camunda:outputParameter></camunda:inputOutput></bpmn:extensionElements>
+      <bpmn:incoming>f1</bpmn:incoming>
+      <bpmn:outgoing>f2</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:serviceTask id="Task_Sorvolo" name="Sorvolo del terreno"><bpmn:extensionElements><camunda:inputOutput><camunda:inputParameter name="preconditions">drone_airborne=true</camunda:inputParameter><camunda:outputParameter name="effects">area_surveyed=true</camunda:outputParameter></camunda:inputOutput></bpmn:extensionElements>
+      <bpmn:incoming>f2</bpmn:incoming>
+      <bpmn:outgoing>f3</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:serviceTask id="Task_Rilevamento" name="Rilevamento zona di interesse"><bpmn:extensionElements><camunda:inputOutput><camunda:inputParameter name="preconditions">area_surveyed=true</camunda:inputParameter><camunda:outputParameter name="effects">weeds_detected=true</camunda:outputParameter></camunda:inputOutput></bpmn:extensionElements>
+      <bpmn:incoming>f3</bpmn:incoming>
+      <bpmn:outgoing>f4</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:serviceTask id="Task_Coordinate" name="Prende coordinate">
+      <bpmn:extensionElements>
+        <camunda:inputOutput><camunda:outputParameter name="effects">work_area_location_available=true</camunda:outputParameter><camunda:outputParameter name="producedData">Coordinate</camunda:outputParameter>
+      </camunda:inputOutput></bpmn:extensionElements>
+      <bpmn:incoming>f4</bpmn:incoming>
+      <bpmn:outgoing>f5</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:serviceTask id="Task_CheckAvailability" name="Verifica disponibilità Tagliatore" camunda:class="it.univaq.disim.drone.AvailabilityCheckDelegate"><bpmn:extensionElements><camunda:inputOutput><camunda:inputParameter name="preconditions">availability_reported=true</camunda:inputParameter><camunda:outputParameter name="effects">availability_checked=true</camunda:outputParameter><camunda:inputParameter name="requiredData">Boolean</camunda:inputParameter></camunda:inputOutput></bpmn:extensionElements><bpmn:incoming>f5</bpmn:incoming><bpmn:outgoing>f6</bpmn:outgoing></bpmn:serviceTask><bpmn:serviceTask id="Task_SelectClosestTractor" name="Seleziona Tagliatore più vicino" camunda:class="it.univaq.disim.drone.SelectClosestTractorDelegate"><bpmn:extensionElements><camunda:inputOutput><camunda:inputParameter name="preconditions">availability_checked=true</camunda:inputParameter><camunda:outputParameter name="effects">selected_tractor=true</camunda:outputParameter><camunda:outputParameter name="producedData">CoordinateTrattoreVicino</camunda:outputParameter></camunda:inputOutput></bpmn:extensionElements><bpmn:incoming>f6</bpmn:incoming><bpmn:outgoing>f7</bpmn:outgoing></bpmn:serviceTask><bpmn:serviceTask id="Task_Atterraggio" name="Atterraggio"><bpmn:extensionElements><camunda:inputOutput><camunda:inputParameter name="preconditions">selected_tractor=true</camunda:inputParameter><camunda:outputParameter name="effects">drone_landed=true</camunda:outputParameter></camunda:inputOutput></bpmn:extensionElements>
+      <bpmn:incoming>f7</bpmn:incoming>
+      <bpmn:outgoing>f8</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:endEvent id="End_Drone" name="Fine">
+      <bpmn:incoming>f8</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:sequenceFlow id="f1" sourceRef="Start_Drone" targetRef="Task_Decollo" />
+    <bpmn:sequenceFlow id="f2" sourceRef="Task_Decollo" targetRef="Task_Sorvolo" />
+    <bpmn:sequenceFlow id="f3" sourceRef="Task_Sorvolo" targetRef="Task_Rilevamento" />
+    <bpmn:sequenceFlow id="f4" sourceRef="Task_Rilevamento" targetRef="Task_Coordinate" />
+    <bpmn:sequenceFlow id="f5" sourceRef="Task_Coordinate" targetRef="Task_CheckAvailability" />
+  <bpmn:sequenceFlow id="f6" sourceRef="Task_CheckAvailability" targetRef="Task_SelectClosestTractor" />
+  <bpmn:sequenceFlow id="f7" sourceRef="Task_SelectClosestTractor" targetRef="Task_Atterraggio" />
+    <bpmn:sequenceFlow id="f8" sourceRef="Task_Atterraggio" targetRef="End_Drone" />
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="D1">
+    <bpmndi:BPMNPlane id="P1" bpmnElement="Drone">
+      <bpmndi:BPMNShape id="S1" bpmnElement="Start_Drone">
+        <dc:Bounds x="152" y="102" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="156" y="145" width="28" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="S2" bpmnElement="Task_Decollo">
+        <dc:Bounds x="240" y="80" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="S3" bpmnElement="Task_Sorvolo">
+        <dc:Bounds x="400" y="80" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="S4" bpmnElement="Task_Rilevamento">
+        <dc:Bounds x="560" y="80" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="S5" bpmnElement="Task_Coordinate">
+        <dc:Bounds x="720" y="80" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="S6" bpmnElement="Task_Atterraggio">
+        <dc:Bounds x="1200.0" y="80" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="S7" bpmnElement="End_Drone">
+        <dc:Bounds x="1362.0" y="102" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1049" y="145" width="22" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="edge_f1" bpmnElement="f1">
+        <di:waypoint x="188" y="120" />
+        <di:waypoint x="240" y="120" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge_f2" bpmnElement="f2">
+        <di:waypoint x="340" y="120" />
+        <di:waypoint x="400" y="120" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge_f3" bpmnElement="f3">
+        <di:waypoint x="500" y="120" />
+        <di:waypoint x="560" y="120" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge_f4" bpmnElement="f4">
+        <di:waypoint x="660" y="120" />
+        <di:waypoint x="720" y="120" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNShape id="Task_CheckAvailability_di" bpmnElement="Task_CheckAvailability"><dc:Bounds x="880" y="80" width="100" height="80" /></bpmndi:BPMNShape><bpmndi:BPMNShape id="Task_SelectClosestTractor_di" bpmnElement="Task_SelectClosestTractor"><dc:Bounds x="1040" y="80" width="100" height="80" /></bpmndi:BPMNShape><bpmndi:BPMNEdge id="f5_di" bpmnElement="f5"><di:waypoint x="820.0" y="120.0" /><di:waypoint x="880.0" y="120.0" /></bpmndi:BPMNEdge><bpmndi:BPMNEdge id="f6_di" bpmnElement="f6"><di:waypoint x="980.0" y="120.0" /><di:waypoint x="1040.0" y="120.0" /></bpmndi:BPMNEdge><bpmndi:BPMNEdge id="f7_di" bpmnElement="f7"><di:waypoint x="1140.0" y="120.0" /><di:waypoint x="1200.0" y="120.0" /></bpmndi:BPMNEdge><bpmndi:BPMNEdge id="f8_di" bpmnElement="f8"><di:waypoint x="1300.0" y="120.0" /><di:waypoint x="1362.0" y="120.0" /></bpmndi:BPMNEdge></bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

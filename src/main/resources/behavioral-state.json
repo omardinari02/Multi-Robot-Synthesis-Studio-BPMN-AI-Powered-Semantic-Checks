@@ -1,0 +1,6 @@
+{
+  "description": "Explicit initial facts for the thesis case study; this is configuration, not inferred from task names.",
+  "initialState": {
+    "mission_started": "true"
+  }
+}

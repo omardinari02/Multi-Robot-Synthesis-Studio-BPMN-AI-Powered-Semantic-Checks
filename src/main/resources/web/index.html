@@ -1,0 +1,1167 @@
+<!DOCTYPE html>
+<html lang="it" class="h-full">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MRS Synthesis Studio • Università dell'Aquila (DISIM)</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Camunda BPMN-JS Navigated Viewer -->
+  <link rel="stylesheet" href="https://unpkg.com/bpmn-js@17.11.1/dist/assets/bpmn-js.css">
+  <link rel="stylesheet" href="https://unpkg.com/bpmn-js@17.11.1/dist/assets/diagram-js.css">
+  <script src="https://unpkg.com/bpmn-js@17.11.1/dist/bpmn-navigated-viewer.production.min.js"></script>
+  <style>
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: #0f172a; }
+    ::-webkit-scrollbar-thumb { background: #334155; border-radius: 3px; }
+    .bjs-powered-by { display: none !important; }
+    @keyframes pulse-subtle {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+    .live-pulse { animation: pulse-subtle 2s infinite ease-in-out; }
+  </style>
+</head>
+<body class="h-full bg-slate-950 text-slate-100 flex flex-col font-sans selection:bg-blue-600 selection:text-white">
+
+  <!-- ========================================================================= -->
+  <!-- 1. TOP NAVBAR                                                             -->
+  <!-- ========================================================================= -->
+  <header class="h-14 border-b border-slate-800 bg-slate-900/90 backdrop-blur px-5 flex items-center justify-between z-20">
+    <div class="flex items-center gap-3">
+      <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-500 flex items-center justify-center font-bold text-white shadow-lg shadow-blue-500/20">
+        MRS
+      </div>
+      <div>
+        <div class="flex items-center gap-2">
+          <h1 class="text-sm font-bold tracking-tight text-white">Multi-Robot Synthesis Studio</h1>
+          <span id="badge-engine" class="px-2 py-0.5 rounded-full text-[11px] font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 flex items-center gap-1.5">
+            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Engine Ready (In Attesa)
+          </span>
+        </div>
+        <p class="text-[11px] text-slate-400">UNIVAQ DISIM • Tesi & Tirocinio Laurea Magistrale ASE</p>
+      </div>
+    </div>
+
+    <!-- Top Action Toolbar -->
+    <div class="flex items-center gap-2.5">
+      <!-- Speed / Mode Selector -->
+      <div class="flex items-center bg-slate-800/80 rounded-lg p-1 border border-slate-700/60 text-xs">
+        <label class="text-slate-400 px-1 font-medium">Modalità:</label>
+        <select id="select-mode" class="bg-slate-900 border border-slate-700 rounded px-2 py-1 text-xs text-amber-300 font-medium focus:outline-none focus:ring-1 focus:ring-blue-500">
+          <option value="demo" selected>🎬 Demo Tesi (Pacing Didattico)</option>
+          <option value="turbo">⚡ Turbo (Istantaneo CPU)</option>
+        </select>
+      </div>
+
+      <div class="flex items-center bg-slate-800/80 rounded-lg p-1 border border-slate-700/60 text-xs">
+        <label class="text-slate-400 px-2 font-medium">Modello Attivo:</label>
+        <select id="select-model-view" class="bg-slate-900 border border-slate-700 rounded px-2.5 py-1 text-xs text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500">
+          <option value="UnifiedMission.bpmn" selected>Coreografia Unificata (4 Pool)</option>
+          <option value="Drone_enhanced.bpmn">Drone (Enhanced Fig. 5.10)</option>
+          <option value="Tagliatore_enhanced.bpmn">Tagliatore (Enhanced Fig. 5.11)</option>
+          <option value="Scavatore_enhanced.bpmn">Scavatore (Enhanced Fig. 5.12)</option>
+          <option value="Seminatore_enhanced.bpmn">Seminatore (Enhanced Fig. 5.13)</option>
+          <option value="GlobalMission.bpmn">Coreografia Globale Iniziale</option>
+        </select>
+      </div>
+
+      <button onclick="editCurrentActiveModel()" title="Modifica il codice BPMN XML del modello selezionato" class="px-3 py-1.5 rounded-lg border border-slate-700 hover:bg-slate-800 text-xs font-medium text-slate-300 transition flex items-center gap-1.5 shadow-sm">
+        <span>📝 Modifica BPMN</span>
+      </button>
+
+      <a id="link-download-bpmn" href="/api/bpmn/UnifiedMission.bpmn" download class="px-3 py-1.5 rounded-lg border border-slate-700 hover:bg-slate-800 text-xs font-medium text-slate-300 transition flex items-center gap-1.5 shadow-sm">
+        <svg class="w-3.5 h-3.5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+        Scarica BPMN
+      </a>
+      <a id="link-download-drawio" href="/api/drawio/UnifiedMission_Visual_Thesis.drawio" download class="px-3 py-1.5 rounded-lg border border-slate-700 hover:bg-slate-800 text-xs font-medium text-slate-300 transition flex items-center gap-1.5 shadow-sm">
+        <svg class="w-3.5 h-3.5 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
+        Scarica Draw.io
+      </a>
+
+      <button id="btn-run-synthesis" class="px-4 py-1.5 rounded-lg bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white text-xs font-semibold shadow-md shadow-blue-600/30 transition flex items-center gap-2">
+        <svg id="icon-play" class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        <span id="text-play">Avvia Sintesi Live</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- ========================================================================= -->
+  <!-- 2. LIVE PIPELINE STEPPER BANNER                                           -->
+  <!-- ========================================================================= -->
+  <div class="border-b border-slate-800 bg-slate-900/40 px-5 py-2.5 flex items-center justify-between text-xs">
+    <div class="flex items-center gap-3">
+      <span class="text-slate-400 font-semibold tracking-wider uppercase text-[10px]">Pipeline Formale:</span>
+      <div class="flex items-center gap-2">
+        <!-- Step 1 -->
+        <div id="step-badge-1" class="px-2.5 py-1 rounded-lg border border-slate-800 bg-slate-900 text-slate-500 font-medium flex items-center gap-1.5 transition">
+          <span class="w-2 h-2 rounded-full bg-slate-700" id="step-dot-1"></span>
+          1. Sintassi (Data Types)
+        </div>
+        <span class="text-slate-700">➔</span>
+        <!-- Step 2 -->
+        <div id="step-badge-2" class="px-2.5 py-1 rounded-lg border border-slate-800 bg-slate-900 text-slate-500 font-medium flex items-center gap-1.5 transition">
+          <span class="w-2 h-2 rounded-full bg-slate-700" id="step-dot-2"></span>
+          2. Semantica (Ontologia & Similarity)
+        </div>
+        <span class="text-slate-700">➔</span>
+        <!-- Step 3 -->
+        <div id="step-badge-3" class="px-2.5 py-1 rounded-lg border border-slate-800 bg-slate-900 text-slate-500 font-medium flex items-center gap-1.5 transition">
+          <span class="w-2 h-2 rounded-full bg-slate-700" id="step-dot-3"></span>
+          3. Comportamento (LTS / Deadlock-Free)
+        </div>
+        <span class="text-slate-700">➔</span>
+        <!-- Step 4 -->
+        <div id="step-badge-4" class="px-2.5 py-1 rounded-lg border border-slate-800 bg-slate-900 text-slate-500 font-medium flex items-center gap-1.5 transition">
+          <span class="w-2 h-2 rounded-full bg-slate-700" id="step-dot-4"></span>
+          4. BPMN Flow Weaving
+        </div>
+      </div>
+    </div>
+
+    <div class="flex items-center gap-4 text-xs font-mono">
+      <span class="text-slate-400">Interazioni: <strong id="stat-interactions" class="text-slate-300 font-semibold">In attesa</strong></span>
+      <span class="text-slate-400">Stato: <strong id="stat-status" class="text-blue-400 font-semibold">Idle (Pronto)</strong></span>
+      <span class="text-slate-500" id="live-time"></span>
+    </div>
+  </div>
+
+  <!-- ========================================================================= -->
+  <!-- 3. MAIN WORKSPACE                                                         -->
+  <!-- ========================================================================= -->
+  <div class="flex-1 flex overflow-hidden">
+
+    <!-- LEFT SIDEBAR: Robot Models, Global Mission & Configurations -->
+    <aside class="w-80 border-r border-slate-800 bg-slate-900/40 flex flex-col justify-between p-3.5 overflow-y-auto">
+      <div class="space-y-4">
+
+        <!-- Top Header & Reset Button -->
+        <div class="flex items-center justify-between pb-2 border-b border-slate-800">
+          <div>
+            <span class="text-[11px] font-bold text-slate-300 uppercase tracking-wider block">Input & Contratti</span>
+            <span class="text-[10px] text-slate-500">Gestione Modelli & JSON</span>
+          </div>
+          <button onclick="resetToDefaultInputs()" title="Ripristina file di default originali della tesi" class="px-2 py-1 rounded-lg border border-slate-700/80 hover:bg-slate-800 text-[10px] text-slate-400 hover:text-amber-300 transition flex items-center gap-1">
+            <span>🔄 Reset Tesi</span>
+          </button>
+        </div>
+
+        <!-- 1. COREOGRAFIA GLOBALE -->
+        <div class="space-y-2">
+          <div class="flex items-center justify-between">
+            <span class="text-[10px] font-semibold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+              <span class="w-2 h-2 rounded-full bg-indigo-500"></span> 1. Coreografia Globale
+            </span>
+            <button onclick="triggerTargetUpload('global')" class="text-[10px] text-indigo-400 hover:text-indigo-300 font-medium transition flex items-center gap-1">
+              <span>+ Carica BPMN</span>
+            </button>
+          </div>
+
+          <div class="p-2.5 rounded-xl border border-slate-800 bg-slate-900/80 hover:border-indigo-500/50 transition flex items-center justify-between group">
+            <div class="flex items-center gap-2.5 flex-1 min-w-0 cursor-pointer" onclick="loadBpmnFile('GlobalMission.bpmn')">
+              <div class="w-7 h-7 rounded-lg bg-indigo-600/20 text-indigo-400 flex items-center justify-center text-xs">🌐</div>
+              <div class="truncate">
+                <p class="text-xs font-semibold text-white group-hover:text-indigo-300 transition">GlobalMission.bpmn</p>
+                <p class="text-[10px] text-slate-400" id="global-meta-desc">Coreografia Multi-Robot</p>
+              </div>
+            </div>
+            <div class="flex items-center gap-1">
+              <button onclick="loadBpmnFile('GlobalMission.bpmn')" title="Visualizza nel Canvas" class="p-1.5 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white transition">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+              </button>
+              <button onclick="openFileEditor('global', 'GlobalMission.bpmn', 'Modello XML BPMN della Coreografia Globale')" title="Ispeziona XML" class="p-1.5 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white transition">
+                📝
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 2. MODELLI ROBOT LOCALI -->
+        <div class="space-y-2">
+          <div class="flex items-center justify-between">
+            <span class="text-[10px] font-semibold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+              <span class="w-2 h-2 rounded-full bg-blue-500"></span> 2. Robot Locali
+              <span id="badge-robot-count" class="px-1.5 py-0.2 rounded text-[9px] bg-slate-800 text-slate-400 font-mono">4</span>
+            </span>
+            <button onclick="triggerTargetUpload('robot')" class="text-[10px] text-blue-400 hover:text-blue-300 font-medium transition flex items-center gap-1">
+              <span>+ Aggiungi Robot</span>
+            </button>
+          </div>
+
+          <!-- Dynamic robot list -->
+          <div class="space-y-1.5 max-h-48 overflow-y-auto pr-1" id="robot-list">
+            <!-- Will be populated by loadInputsMetadata() -->
+          </div>
+        </div>
+
+        <!-- 3. SPECIFICHE SEMANTICHE, ONTOLOGIA & COMPORTAMENTO -->
+        <div class="space-y-2 pt-2 border-t border-slate-800">
+          <span class="text-[10px] font-semibold text-slate-400 uppercase tracking-wider block">3. Contratti & Ontologia</span>
+
+          <!-- semantics.json -->
+          <div class="p-2 rounded-xl border border-slate-800 bg-slate-900/60 hover:border-slate-700 transition flex items-center justify-between">
+            <div class="flex items-center gap-2 truncate">
+              <span class="text-xs">📋</span>
+              <div class="truncate">
+                <p class="text-xs font-semibold text-slate-200">semantics.json</p>
+                <p class="text-[9px] text-slate-400 truncate" id="desc-semantics-meta">Contratti I/O & descrizioni</p>
+              </div>
+            </div>
+            <div class="flex items-center gap-1">
+              <button onclick="triggerTargetUpload('semantics')" title="Carica semantics.json" class="px-1.5 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-[10px] text-blue-400 transition">
+                Carica
+              </button>
+              <button onclick="openFileEditor('semantics', 'semantics.json', 'Specifiche semantiche I/O dei messaggi e dei task')" title="Modifica semantics.json" class="px-1.5 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-[10px] text-slate-300 transition">
+                Modifica 📝
+              </button>
+            </div>
+          </div>
+
+          <!-- taxonomy.json (Ontology) -->
+          <div class="p-2 rounded-xl border border-slate-800 bg-slate-900/60 hover:border-slate-700 transition flex items-center justify-between">
+            <div class="flex items-center gap-2 truncate">
+              <span class="text-xs">🏷️</span>
+              <div class="truncate">
+                <p class="text-xs font-semibold text-slate-200">taxonomy.json</p>
+                <p class="text-[9px] text-slate-400 truncate" id="desc-taxonomy-meta">Ontologia OWL & Tipi</p>
+              </div>
+            </div>
+            <div class="flex items-center gap-1">
+              <button onclick="triggerTargetUpload('taxonomy')" title="Carica taxonomy.json" class="px-1.5 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-[10px] text-emerald-400 transition">
+                Carica
+              </button>
+              <button onclick="openFileEditor('taxonomy', 'taxonomy.json', 'Tassonomia dei tipi di dato e concetti formali OWL')" title="Modifica taxonomy.json" class="px-1.5 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-[10px] text-slate-300 transition">
+                Modifica 📝
+              </button>
+            </div>
+          </div>
+
+          <!-- behavioral-state.json -->
+          <div class="p-2 rounded-xl border border-slate-800 bg-slate-900/60 hover:border-slate-700 transition flex items-center justify-between">
+            <div class="flex items-center gap-2 truncate">
+              <span class="text-xs">⚙️</span>
+              <div class="truncate">
+                <p class="text-xs font-semibold text-slate-200">behavioral-state.json</p>
+                <p class="text-[9px] text-slate-400 truncate" id="desc-behavioral-meta">Stato iniziale LTS robot</p>
+              </div>
+            </div>
+            <div class="flex items-center gap-1">
+              <button onclick="triggerTargetUpload('behavioral')" title="Carica behavioral-state.json" class="px-1.5 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-[10px] text-amber-400 transition">
+                Carica
+              </button>
+              <button onclick="openFileEditor('behavioral', 'behavioral-state.json', 'Stato iniziale comportamentale per la verifica LTS deadlock-free')" title="Modifica behavioral-state.json" class="px-1.5 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-[10px] text-slate-300 transition">
+                Modifica 📝
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 4. STRATEGIA SEMANTICA -->
+        <div class="pt-2 border-t border-slate-800 space-y-2">
+          <label class="text-[10px] font-semibold text-slate-400 uppercase tracking-wider block">4. Ragionamento Semantico</label>
+          <select id="matcher-select" onchange="onMatcherChange()" class="w-full text-xs bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-2 text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500">
+            <option value="HYBRID" selected>Ibrido (WordNet + Ontologia Fallback)</option>
+            <option value="ONTOLOGY_STRICT">Ontologia Dominio Agrario (OWL)</option>
+            <option value="LLM_REASONER">LLM Semantic Reasoner (Gemini Flash 2.0 AI)</option>
+          </select>
+          <div id="api-key-container" class="hidden space-y-1.5 p-2 rounded-lg bg-slate-950/80 border border-slate-800">
+            <div class="flex items-center justify-between text-[10px]">
+              <span class="text-slate-400 font-medium">Google Gemini API Key:</span>
+              <a href="https://aistudio.google.com/app/apikey" target="_blank" class="text-blue-400 hover:text-blue-300 underline flex items-center gap-0.5">
+                Ottieni gratis ↗
+              </a>
+            </div>
+            <input type="password" id="gemini-api-key" placeholder="AIzaSy... (o lascia vuoto per ENV/Locale)" 
+                   class="w-full text-xs bg-slate-900 border border-slate-700 rounded px-2 py-1.5 text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500 font-mono"
+                   onchange="saveApiKey(this.value)">
+            <p class="text-[9px] text-slate-500">Se inserita, chiama live le API neurali Google Gemini Flash. Altrimenti usa ENV o il reasoner locale.</p>
+          </div>
+          <p class="text-[10px] text-slate-500" id="matcher-description">Usa taxonomy.json e semantics.json per mappare i concetti di interazione.</p>
+        </div>
+      </div>
+
+      <!-- 5. QUICK ACTION: ESEGUI SINTESI -->
+      <div class="pt-3 border-t border-slate-800 space-y-2">
+        <button onclick="startSynthesis()" class="w-full py-2.5 px-3 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white text-xs font-bold shadow-lg shadow-blue-600/30 transition flex items-center justify-center gap-2">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"/></svg>
+          Esegui Sintesi Live
+        </button>
+        <p class="text-[10px] text-slate-500 text-center">Tutti i file caricati o modificati vengono usati all'istante.</p>
+      </div>
+
+      <!-- Hidden generic file upload input -->
+      <input type="file" id="generic-file-input" class="hidden" onchange="handleTargetedUpload(event)">
+    </aside>
+
+    <!-- CENTER & RIGHT: Canvas Viewer + Terminal & Tabs -->
+    <main class="flex-1 flex flex-col bg-slate-950 overflow-hidden relative">
+
+      <!-- View Selector Tabs -->
+      <div class="h-10 border-b border-slate-800 bg-slate-900/60 px-4 flex items-center justify-between text-xs">
+        <div class="flex items-center gap-1">
+          <button id="tab-btn-canvas" class="px-3 py-1.5 font-semibold text-blue-400 border-b-2 border-blue-500 transition" onclick="switchMainTab('canvas')">
+            Diagramma BPMN Interattivo
+          </button>
+          <button id="tab-btn-matrix" class="px-3 py-1.5 font-medium text-slate-400 hover:text-slate-200 border-b-2 border-transparent transition" onclick="switchMainTab('matrix')">
+            Matrice di Compatibilità (Formale)
+          </button>
+          <button id="tab-btn-logs" class="px-3 py-1.5 font-medium text-slate-400 hover:text-slate-200 border-b-2 border-transparent transition" onclick="switchMainTab('logs')">
+            Console Eventi & Log Live
+          </button>
+        </div>
+
+        <!-- BPMN Canvas View Controls -->
+        <div id="canvas-toolbar" class="flex items-center gap-1 bg-slate-800/80 rounded-lg p-0.5 border border-slate-700/60 text-xs">
+          <button onclick="zoomIn()" class="px-2 py-0.5 text-slate-300 hover:text-white rounded" title="Zoom In">+</button>
+          <button onclick="zoomOut()" class="px-2 py-0.5 text-slate-300 hover:text-white rounded" title="Zoom Out">-</button>
+          <button onclick="zoomReset()" class="px-2 py-0.5 text-slate-300 hover:text-white rounded" title="Adatta a Schermo">Reset</button>
+        </div>
+      </div>
+
+      <!-- TAB 1: BPMN Canvas Container -->
+      <div id="tab-content-canvas" class="flex-1 relative flex flex-col overflow-hidden bg-slate-900/20">
+
+        <!-- Welcome / Idle Screen (Shown BEFORE synthesis is executed) -->
+        <div id="welcome-idle-card" class="absolute inset-0 z-10 flex items-center justify-center p-6 bg-slate-950/80 backdrop-blur-sm">
+          <div class="max-w-xl w-full border border-slate-800 rounded-2xl bg-slate-900/90 p-6 shadow-2xl text-center space-y-4">
+            <div class="w-14 h-14 mx-auto rounded-2xl bg-blue-600/10 border border-blue-500/30 flex items-center justify-center text-blue-400">
+              <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z"/></svg>
+            </div>
+
+            <div>
+              <h2 class="text-base font-bold text-white">Workspace Pronto per la Sintesi</h2>
+              <p class="text-xs text-slate-400 mt-1">Carica o seleziona tutti i modelli BPMN e le specifiche di cui hai bisogno. Quando sei pronto, avvia la sintesi collaborativa formale.</p>
+            </div>
+
+            <div class="grid grid-cols-2 gap-2 text-left text-xs bg-slate-950/60 p-3 rounded-xl border border-slate-800/80">
+              <div class="flex items-center gap-2 text-slate-300">
+                <span class="w-2 h-2 rounded-full bg-blue-500"></span> Drone.bpmn (Pronto)
+              </div>
+              <div class="flex items-center gap-2 text-slate-300">
+                <span class="w-2 h-2 rounded-full bg-emerald-500"></span> Tagliatore.bpmn (Pronto)
+              </div>
+              <div class="flex items-center gap-2 text-slate-300">
+                <span class="w-2 h-2 rounded-full bg-amber-500"></span> Scavatore.bpmn (Pronto)
+              </div>
+              <div class="flex items-center gap-2 text-slate-300">
+                <span class="w-2 h-2 rounded-full bg-purple-500"></span> Seminatore.bpmn (Pronto)
+              </div>
+            </div>
+
+            <div class="pt-2 flex items-center justify-center gap-3">
+              <button onclick="triggerUpload()" class="px-4 py-2 rounded-xl border border-slate-700 hover:bg-slate-800 text-xs font-medium text-slate-300 transition flex items-center gap-1.5">
+                <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+                Carica Altro Modello
+              </button>
+
+              <button onclick="startSynthesis()" class="px-5 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white text-xs font-semibold shadow-lg shadow-blue-600/30 transition flex items-center gap-2">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"/></svg>
+                Avvia Sintesi Live (Run)
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- BPMN Canvas Container -->
+        <div id="bpmn-container" class="flex-1 w-full h-full overflow-hidden"></div>
+
+        <!-- Node Inspector Drawer (Bottom of canvas) -->
+        <div id="inspector-bar" class="h-16 border-t border-slate-800 bg-slate-900/90 backdrop-blur px-5 flex items-center justify-between z-10 text-xs">
+          <div class="flex items-center gap-3">
+            <span class="w-3 h-3 rounded-full bg-blue-500 animate-pulse"></span>
+            <div>
+              <span id="inspect-title" class="font-bold text-white">Seleziona un nodo BPMN</span>
+              <span id="inspect-subtitle" class="text-slate-400 ml-2 font-mono text-[11px]">Clicca su qualsiasi task o messaggio per ispezionare i contratti formali</span>
+            </div>
+          </div>
+
+          <div id="inspect-badges" class="flex items-center gap-2">
+            <span class="px-2.5 py-1 rounded-md bg-slate-800 text-slate-400 font-mono text-[11px] border border-slate-700">Precondizioni / Effetti / Dati</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB 2: Compatibility Matrix Table -->
+      <div id="tab-content-matrix" class="hidden flex-1 p-6 overflow-y-auto bg-slate-950">
+        <div class="max-w-6xl mx-auto space-y-4">
+          <div class="flex items-center justify-between">
+            <div>
+              <h2 class="text-base font-bold text-white">Matrice di Compatibilità Multi-Robot (§5.4 - §5.6 Tesi)</h2>
+              <p class="text-xs text-slate-400">Verifica formale delle 6 interazioni scoperte tra i 4 robot partecipanti.</p>
+            </div>
+            <span id="matrix-status-pill" class="px-3 py-1 rounded-full text-xs font-semibold bg-blue-500/10 text-blue-400 border border-blue-500/30">
+              Pronta per la verifica
+            </span>
+          </div>
+
+          <!-- Table -->
+          <div class="border border-slate-800 rounded-xl overflow-hidden shadow-xl bg-slate-900/40">
+            <table class="w-full text-left text-xs">
+              <thead class="bg-slate-900 border-b border-slate-800 text-[11px] uppercase tracking-wider text-slate-400 font-semibold">
+                <tr>
+                  <th class="py-3 px-4">Messaggio</th>
+                  <th class="py-3 px-4">Produttore (Sender)</th>
+                  <th class="py-3 px-4">Consumatore (Receiver)</th>
+                  <th class="py-3 px-4">Sintattica (Tipi)</th>
+                  <th class="py-3 px-4">Semantica (Ontologia)</th>
+                  <th class="py-3 px-4">Comportamentale (LTS)</th>
+                  <th class="py-3 px-4">Esito</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-slate-800/60 font-mono text-slate-300" id="matrix-tbody">
+                <!-- 1. weedPosition -->
+                <tr class="hover:bg-slate-800/30 transition">
+                  <td class="py-3 px-4 font-bold text-blue-400">weedPosition</td>
+                  <td class="py-3 px-4">Drone • Task_Coordinate<br><span class="text-[10px] text-slate-500 font-sans">producedData: WeedLocation</span></td>
+                  <td class="py-3 px-4">Broadcast ➔ Tagliatore<br><span class="text-[10px] text-slate-500 font-sans">requiredData: WeedLocation</span></td>
+                  <td class="py-3 px-4"><span class="text-emerald-400 font-bold">MATCH</span> (WeedLocation)</td>
+                  <td class="py-3 px-4"><span class="text-emerald-400 font-bold">Score: 1.0</span> (target_weed)</td>
+                  <td class="py-3 px-4"><span class="text-emerald-400 font-bold">PASS</span> (No Deadlock)</td>
+                  <td class="py-3 px-4"><span class="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400 font-sans font-semibold text-[10px]">VALIDATO</span></td>
+                </tr>
+                <!-- 2. availability -->
+                <tr class="hover:bg-slate-800/30 transition">
+                  <td class="py-3 px-4 font-bold text-blue-400">availability</td>
+                  <td class="py-3 px-4">Tagliatore • Task_Autovalutazione<br><span class="text-[10px] text-slate-500 font-sans">producedData: Boolean</span></td>
+                  <td class="py-3 px-4">Drone • Task_CheckAvailability<br><span class="text-[10px] text-slate-500 font-sans">requiredData: Boolean</span></td>
+                  <td class="py-3 px-4"><span class="text-emerald-400 font-bold">MATCH</span> (Boolean)</td>
+                  <td class="py-3 px-4"><span class="text-emerald-400 font-bold">Score: 1.0</span> (cutter_ready)</td>
+                  <td class="py-3 px-4"><span class="text-emerald-400 font-bold">PASS</span> (PT10S Retry)</td>
+                  <td class="py-3 px-4"><span class="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400 font-sans font-semibold text-[10px]">VALIDATO</span></td>
+                </tr>
+                <!-- 3. closestTractor -->
+                <tr class="hover:bg-slate-800/30 transition">
+                  <td class="py-3 px-4 font-bold text-blue-400">closestTractor</td>
+                  <td class="py-3 px-4">Drone • Task_SelectClosestTractor<br><span class="text-[10px] text-slate-500 font-sans">producedData: TractorId</span></td>
+                  <td class="py-3 px-4">Tagliatore • Task_AttesaAssegnazione<br><span class="text-[10px] text-slate-500 font-sans">requiredData: TractorId</span></td>
+                  <td class="py-3 px-4"><span class="text-emerald-400 font-bold">MATCH</span> (TractorId)</td>
+                  <td class="py-3 px-4"><span class="text-emerald-400 font-bold">Score: 1.0</span> (assigned_tractor)</td>
+                  <td class="py-3 px-4"><span class="text-emerald-400 font-bold">PASS</span> (LTS Reachable)</td>
+                  <td class="py-3 px-4"><span class="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400 font-sans font-semibold text-[10px]">VALIDATO</span></td>
+                </tr>
+                <!-- 4. fieldReady (Scavatore) -->
+                <tr class="hover:bg-slate-800/30 transition bg-amber-500/5">
+                  <td class="py-3 px-4 font-bold text-amber-400">fieldReady</td>
+                  <td class="py-3 px-4">Tagliatore • Task_Taglio<br><span class="text-[10px] text-slate-500 font-sans">effects: field_ready=true</span></td>
+                  <td class="py-3 px-4">Scavatore • <strong class="text-amber-300">Task_Posizionamento</strong><br><span class="text-[10px] text-slate-500 font-sans">preconditions: field_ready=true</span></td>
+                  <td class="py-3 px-4"><span class="text-emerald-400 font-bold">MATCH</span> (Boolean)</td>
+                  <td class="py-3 px-4"><span class="text-emerald-400 font-bold">Score: 1.0</span> (field_ready)</td>
+                  <td class="py-3 px-4"><span class="text-emerald-400 font-bold">PASS</span> (Tessuto a monte)</td>
+                  <td class="py-3 px-4"><span class="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400 font-sans font-semibold text-[10px]">FIG. 5.12 ✓</span></td>
+                </tr>
+                <!-- 5. digDone (Seminatore) -->
+                <tr class="hover:bg-slate-800/30 transition bg-purple-500/5">
+                  <td class="py-3 px-4 font-bold text-purple-400">digDone</td>
+                  <td class="py-3 px-4">Scavatore • Task_Scavo<br><span class="text-[10px] text-slate-500 font-sans">effects: digging_completed=true</span></td>
+                  <td class="py-3 px-4">Seminatore • <strong class="text-purple-300">Task_Carica</strong><br><span class="text-[10px] text-slate-500 font-sans">preconditions: digging_completed=true</span></td>
+                  <td class="py-3 px-4"><span class="text-emerald-400 font-bold">MATCH</span> (Boolean)</td>
+                  <td class="py-3 px-4"><span class="text-emerald-400 font-bold">Score: 1.0</span> (digging_done)</td>
+                  <td class="py-3 px-4"><span class="text-emerald-400 font-bold">PASS</span> (Tessuto a monte)</td>
+                  <td class="py-3 px-4"><span class="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400 font-sans font-semibold text-[10px]">FIG. 5.13 ✓</span></td>
+                </tr>
+                <!-- 6. seedingDone -->
+                <tr class="hover:bg-slate-800/30 transition">
+                  <td class="py-3 px-4 font-bold text-blue-400">seedingDone</td>
+                  <td class="py-3 px-4">Seminatore • Task_Semina<br><span class="text-[10px] text-slate-500 font-sans">effects: seeding_completed=true</span></td>
+                  <td class="py-3 px-4">Fine Missione / Coordinatore<br><span class="text-[10px] text-slate-500 font-sans">requiredData: Boolean</span></td>
+                  <td class="py-3 px-4"><span class="text-emerald-400 font-bold">MATCH</span> (Boolean)</td>
+                  <td class="py-3 px-4"><span class="text-emerald-400 font-bold">Score: 1.0</span> (seeding_done)</td>
+                  <td class="py-3 px-4"><span class="text-emerald-400 font-bold">PASS</span> (Mission Complete)</td>
+                  <td class="py-3 px-4"><span class="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400 font-sans font-semibold text-[10px]">VALIDATO</span></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB 3: Real-Time Event Stream Log Terminal -->
+      <div id="tab-content-logs" class="hidden flex-1 p-6 flex flex-col bg-slate-950 overflow-hidden">
+        <div class="flex items-center justify-between mb-2">
+          <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider flex items-center gap-2">
+            <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span> Flusso Eventi Server-Sent Events (SSE: /api/events)
+          </span>
+          <button onclick="clearLogs()" class="text-xs text-slate-400 hover:text-white px-2 py-1 rounded bg-slate-800 border border-slate-700">Pulisci Console</button>
+        </div>
+        <div id="terminal-stream" class="flex-1 bg-slate-900 border border-slate-800 rounded-xl p-4 font-mono text-xs overflow-y-auto space-y-1.5 text-slate-300 shadow-inner">
+          <div class="text-slate-500">[READY] Workspace inizializzato. Carica i file e clicca su 'Avvia Sintesi' per iniziare la verifica.</div>
+        </div>
+      </div>
+
+    </main>
+
+  </div>
+
+  <!-- ========================================================================= -->
+  <!-- 4. JAVASCRIPT LOGIC                                                       -->
+  <!-- ========================================================================= -->
+  <script>
+    let viewer = null;
+    let eventSource = null;
+    let synthesisHasRun = false;
+
+    // Initialize BPMN Viewer (Without auto-rendering until run or user chooses)
+    document.addEventListener("DOMContentLoaded", () => {
+      try {
+        if (window.BpmnJS) {
+          viewer = new BpmnJS({ container: '#bpmn-container' });
+          viewer.on('element.click', (event) => {
+            const element = event.element;
+            inspectElement(element);
+          });
+        }
+      } catch (e) {
+        console.error("BPMN Viewer init error:", e);
+      }
+
+      initSse();
+      loadInputsMetadata();
+      updateClock();
+      setInterval(updateClock, 1000);
+    });
+
+    function updateClock() {
+      const now = new Date();
+      document.getElementById('live-time').innerText = now.toLocaleTimeString();
+    }
+
+    function initSse() {
+      if (eventSource) eventSource.close();
+      eventSource = new EventSource('/api/events');
+
+      eventSource.onmessage = (e) => {
+        try {
+          const event = JSON.parse(e.data);
+          handleLiveEvent(event);
+        } catch (err) {
+          console.error("Error parsing SSE event:", err);
+        }
+      };
+
+      eventSource.onerror = () => {
+        document.getElementById('badge-engine').innerHTML = "<span class='w-1.5 h-1.5 rounded-full bg-amber-500'></span> Riconnessione SSE...";
+      };
+
+      eventSource.onopen = () => {
+        document.getElementById('badge-engine').innerHTML = "<span class='w-1.5 h-1.5 rounded-full bg-emerald-500'></span> Engine Ready (In Attesa)";
+      };
+    }
+
+    function handleLiveEvent(ev) {
+      appendTerminalLog(ev);
+
+      if (ev.type === "STEP_STARTED") {
+        setPipelinePhase(ev.stepNumber);
+      } else if (ev.type === "SYNTACTIC_CHECK") {
+        setPipelinePhase(1);
+      } else if (ev.type === "SEMANTIC_CHECK") {
+        setPipelinePhase(2);
+      } else if (ev.type === "BEHAVIORAL_CHECK") {
+        setPipelinePhase(3);
+      } else if (ev.type === "PLAN_CREATED" || ev.type === "WEAVING_TASK") {
+        setPipelinePhase(4);
+      } else if (ev.type === "PIPELINE_COMPLETED") {
+        setPipelinePhase(4, true);
+        synthesisHasRun = true;
+        document.getElementById('text-play').innerText = "Riesegui Sintesi";
+        document.getElementById('icon-play').classList.remove('animate-spin');
+        document.getElementById('stat-status').innerText = "Completato ✓";
+        document.getElementById('stat-status').className = "text-emerald-400 font-semibold";
+        document.getElementById('stat-interactions').innerText = "6 / 6 Validati";
+        document.getElementById('stat-interactions').className = "text-emerald-400 font-semibold";
+
+        // Hide welcome card and load synthesized UnifiedMission
+        document.getElementById('welcome-idle-card').classList.add('hidden');
+        loadBpmnFile("UnifiedMission.bpmn");
+      }
+    }
+
+    function setPipelinePhase(stepNum, allDone = false) {
+      for (let i = 1; i <= 4; i++) {
+        const badge = document.getElementById(`step-badge-${i}`);
+        const dot = document.getElementById(`step-dot-${i}`);
+        if (allDone || i < stepNum) {
+          badge.className = "px-2.5 py-1 rounded-lg border border-emerald-500/30 bg-emerald-500/10 text-emerald-400 font-medium flex items-center gap-1.5 transition";
+          dot.className = "w-2 h-2 rounded-full bg-emerald-500";
+        } else if (i === stepNum) {
+          badge.className = "px-2.5 py-1 rounded-lg border-2 border-blue-500 bg-blue-500/20 text-blue-300 font-bold flex items-center gap-1.5 shadow-md shadow-blue-500/20 animate-pulse transition";
+          dot.className = "w-2 h-2 rounded-full bg-blue-400";
+        } else {
+          badge.className = "px-2.5 py-1 rounded-lg border border-slate-800 bg-slate-900 text-slate-500 font-medium flex items-center gap-1.5 transition";
+          dot.className = "w-2 h-2 rounded-full bg-slate-700";
+        }
+      }
+    }
+
+    function appendTerminalLog(ev) {
+      const term = document.getElementById('terminal-stream');
+      const row = document.createElement('div');
+      let tagClass = "text-blue-400";
+      if (ev.type === "SYNTACTIC_CHECK") tagClass = "text-emerald-400 font-semibold";
+      if (ev.type === "SEMANTIC_CHECK") tagClass = "text-purple-400 font-semibold";
+      if (ev.type === "BEHAVIORAL_CHECK") tagClass = "text-amber-400 font-semibold";
+      if (ev.type === "PIPELINE_COMPLETED") tagClass = "text-emerald-400 font-bold";
+      if (ev.type === "DIAGNOSTIC") tagClass = "text-red-400 font-bold";
+
+      const timeStr = ev.timestamp ? ev.timestamp.substring(11, 19) : "";
+      const text = ev.message || ev.details || ev.type;
+      row.innerHTML = `<span class="text-slate-500">[${timeStr}]</span> <span class="${tagClass}">[${ev.stepName || ev.type}]</span> ${text}`;
+      term.appendChild(row);
+      term.scrollTop = term.scrollHeight;
+    }
+
+    function clearLogs() {
+      document.getElementById('terminal-stream').innerHTML = '<div class="text-slate-500">[SYSTEM] Console pulita.</div>';
+    }
+
+    let currentUploadTarget = null;
+    let currentEditingTarget = null;
+    let currentEditingName = null;
+
+    // Load full metadata of all inputs (Global Mission, Robots, Configs)
+    async function loadInputsMetadata() {
+      try {
+        const res = await fetch('/api/inputs');
+        if (!res.ok) return;
+        const data = await res.json();
+
+        // 1. Global Mission Meta
+        if (data.globalMission) {
+          const gmDesc = document.getElementById('global-meta-desc');
+          if (gmDesc) {
+            gmDesc.innerText = data.globalMission.exists 
+                ? `BPMN Coreografia • ${(data.globalMission.sizeBytes / 1024).toFixed(1)} KB`
+                : "Non trovata";
+          }
+        }
+
+        // 2. Local Robots List
+        const listContainer = document.getElementById('robot-list');
+        const countBadge = document.getElementById('badge-robot-count');
+        const colors = ['bg-blue-500', 'bg-emerald-500', 'bg-amber-500', 'bg-purple-500', 'bg-cyan-500', 'bg-rose-500'];
+
+        if (listContainer && data.robots) {
+          listContainer.innerHTML = '';
+          if (countBadge) countBadge.innerText = data.robots.length;
+
+          data.robots.forEach((robot, idx) => {
+            const colorClass = colors[idx % colors.length];
+            const item = document.createElement('div');
+            item.className = "p-2 rounded-xl border border-slate-800 bg-slate-900/60 hover:border-slate-700 transition flex items-center justify-between group";
+
+            const canDelete = data.robots.length > 1;
+            item.innerHTML = `
+              <div class="flex items-center gap-2 flex-1 min-w-0 cursor-pointer" onclick="loadBpmnFile('${robot.filename}')">
+                <span class="w-2.5 h-2.5 rounded-full ${colorClass} shrink-0"></span>
+                <div class="truncate">
+                  <p class="text-xs font-semibold text-white group-hover:text-blue-400 transition truncate">${robot.filename}</p>
+                  <p class="text-[9px] text-slate-400">${(robot.sizeBytes / 1024).toFixed(1)} KB • Task Locali</p>
+                </div>
+              </div>
+              <div class="flex items-center gap-1 shrink-0">
+                <button onclick="loadBpmnFile('${robot.filename}')" title="Visualizza nel Canvas" class="p-1 rounded hover:bg-slate-800 text-slate-400 hover:text-white transition">
+                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+                </button>
+                <button onclick="openFileEditor('robot', '${robot.filename}', 'Modello BPMN XML del robot locale: ${robot.robotName}')" title="Modifica XML robot" class="p-1 rounded hover:bg-slate-800 text-slate-400 hover:text-white transition text-xs">
+                  📝
+                </button>
+                ${canDelete ? `
+                <button onclick="deleteRobotModel('${robot.filename}')" title="Rimuovi robot" class="p-1 rounded hover:bg-red-500/20 text-slate-500 hover:text-red-400 transition">
+                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                </button>` : ''}
+              </div>
+            `;
+            listContainer.appendChild(item);
+          });
+        }
+
+        // 3. Config files metadata
+        if (data.configs) {
+          if (data.configs.semantics && document.getElementById('desc-semantics-meta')) {
+            document.getElementById('desc-semantics-meta').innerText = `${(data.configs.semantics.sizeBytes / 1024).toFixed(1)} KB • Contratti I/O validati`;
+          }
+          if (data.configs.taxonomy && document.getElementById('desc-taxonomy-meta')) {
+            document.getElementById('desc-taxonomy-meta').innerText = `${(data.configs.taxonomy.sizeBytes / 1024).toFixed(1)} KB • Tassonomia formale OWL`;
+          }
+          if (data.configs.behavioral && document.getElementById('desc-behavioral-meta')) {
+            document.getElementById('desc-behavioral-meta').innerText = `${data.configs.behavioral.sizeBytes} B • Stati iniziali LTS`;
+          }
+        }
+
+        // 4. Update model select dropdown
+        updateActiveModelDropdown(data);
+      } catch (e) {
+        console.warn("Could not load inputs metadata:", e);
+      }
+    }
+
+    function updateActiveModelDropdown(inputsData) {
+      const select = document.getElementById('select-model-view');
+      if (!select) return;
+      const currentVal = select.value;
+
+      let html = `
+        <option value="UnifiedMission.bpmn">Coreografia Unificata (4 Pool)</option>
+        <option value="GlobalMission.bpmn">Coreografia Globale Iniziale</option>
+      `;
+
+      if (inputsData && inputsData.robots) {
+        inputsData.robots.forEach(r => {
+          html += `<option value="${r.filename}">Input: ${r.robotName}</option>`;
+          html += `<option value="${r.robotName}_enhanced.bpmn">Enhanced: ${r.robotName} (Tessuto)</option>`;
+        });
+      }
+
+      select.innerHTML = html;
+      if (select.querySelector(`option[value="${currentVal}"]`)) {
+        select.value = currentVal;
+      }
+    }
+
+    function triggerTargetUpload(target) {
+      currentUploadTarget = target;
+      const input = document.getElementById('generic-file-input');
+      if (!input) return;
+
+      if (target === 'global' || target === 'robot') {
+        input.accept = ".bpmn,.xml";
+      } else {
+        input.accept = ".json";
+      }
+      input.click();
+    }
+
+    async function handleTargetedUpload(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const target = currentUploadTarget;
+      appendTerminalLog({
+        type: "UPLOAD",
+        stepName: "File Upload",
+        message: `Caricamento file utente: ${file.name} [Target: ${target || 'auto'}]...`
+      });
+
+      try {
+        let url = `/api/upload?filename=${encodeURIComponent(file.name)}`;
+        if (target) url += `&target=${encodeURIComponent(target)}`;
+
+        const response = await fetch(url, {
+          method: 'POST',
+          headers: {
+            'X-Filename': file.name,
+            'X-Target': target || ''
+          },
+          body: file
+        });
+
+        const result = await response.json();
+        if (response.ok) {
+          appendTerminalLog({
+            type: "UPLOAD",
+            stepName: "File Upload",
+            message: `File caricato con successo: ${result.targetFile} (${result.sizeBytes} bytes) ✓`
+          });
+          loadInputsMetadata();
+          if (file.name.endsWith('.bpmn')) {
+            loadBpmnFile(target === 'global' ? 'GlobalMission.bpmn' : file.name);
+          }
+          alert(`File "${file.name}" salvato correttamente come "${result.targetFile}"!`);
+        } else {
+          throw new Error(result.error || "Errore upload");
+        }
+      } catch (err) {
+        alert("Errore caricamento: " + err.message);
+      } finally {
+        event.target.value = '';
+      }
+    }
+
+    function editCurrentActiveModel() {
+      const select = document.getElementById('select-model-view');
+      const activeFile = select ? select.value : 'GlobalMission.bpmn';
+      
+      if (activeFile.startsWith('UnifiedMission') || activeFile.endsWith('_enhanced.bpmn')) {
+        openFileEditor('output', activeFile, `Modello sintetizzato di output: ${activeFile}`);
+      } else if (activeFile === 'GlobalMission.bpmn') {
+        openFileEditor('global', activeFile, 'Coreografia Globale Iniziale (BPMN XML)');
+      } else {
+        openFileEditor('robot', activeFile, `Modello BPMN XML del robot locale: ${activeFile}`);
+      }
+    }
+
+    async function openFileEditor(target, displayName, description) {
+      currentEditingTarget = target;
+      currentEditingName = displayName;
+
+      document.getElementById('modal-file-title').innerText = displayName;
+      document.getElementById('modal-file-desc').innerText = description;
+      const isXml = displayName.endsWith('.bpmn') || displayName.endsWith('.xml');
+      document.getElementById('modal-file-icon').innerText = isXml ? 'XML' : '{}';
+      document.getElementById('modal-file-badge').innerText = isXml ? 'BPMN Model' : 'JSON Config';
+      const fmtBtnText = document.getElementById('modal-format-btn-text');
+      if (fmtBtnText) fmtBtnText.innerText = isXml ? '⚡ Formatta XML' : '⚡ Formatta JSON';
+
+      document.getElementById('modal-status-msg').innerText = "Caricamento in corso...";
+      document.getElementById('file-editor-modal').classList.remove('hidden');
+
+      try {
+        const res = await fetch(`/api/file-content?target=${encodeURIComponent(target)}&file=${encodeURIComponent(displayName)}`);
+        if (!res.ok) throw new Error("Impossibile leggere il file dal server");
+        const data = await res.json();
+        document.getElementById('modal-file-content').value = data.content;
+        document.getElementById('modal-status-msg').innerText = `File: ${data.filename} (${(data.sizeBytes / 1024).toFixed(1)} KB)`;
+      } catch (err) {
+        document.getElementById('modal-status-msg').innerText = "Errore lettura: " + err.message;
+      }
+    }
+
+    function closeFileEditorModal() {
+      document.getElementById('file-editor-modal').classList.add('hidden');
+    }
+
+    function formatModalContent() {
+      const area = document.getElementById('modal-file-content');
+      const val = area.value.trim();
+      const isXml = currentEditingName && (currentEditingName.endsWith('.bpmn') || currentEditingName.endsWith('.xml'));
+
+      if (isXml) {
+        try {
+          area.value = formatXml(val);
+          document.getElementById('modal-status-msg').innerText = "XML formattato e indentato ✓";
+        } catch (e) {
+          alert("Errore sintassi XML: " + e.message);
+        }
+      } else {
+        try {
+          const parsed = JSON.parse(val);
+          area.value = JSON.stringify(parsed, null, 2);
+          document.getElementById('modal-status-msg').innerText = "JSON formattato e indentato ✓";
+        } catch (e) {
+          alert("Sintassi JSON non valida: " + e.message);
+        }
+      }
+    }
+
+    function formatXml(xmlString) {
+      const parser = new DOMParser();
+      const xmlDoc = parser.parseFromString(xmlString, 'application/xml');
+      const parserError = xmlDoc.querySelector('parsererror');
+      if (parserError) {
+        throw new Error(parserError.textContent.substring(0, 150));
+      }
+
+      function serializeNode(node, level = 0) {
+        const indent = '  '.repeat(level);
+        if (node.nodeType === Node.TEXT_NODE) {
+          const text = node.textContent.trim();
+          return text ? text : '';
+        }
+        if (node.nodeType === Node.COMMENT_NODE) {
+          return `${indent}<!--${node.textContent}-->\n`;
+        }
+        if (node.nodeType === Node.ELEMENT_NODE) {
+          let attrs = '';
+          for (let i = 0; i < node.attributes.length; i++) {
+            attrs += ` ${node.attributes[i].name}="${node.attributes[i].value}"`;
+          }
+          const children = Array.from(node.childNodes);
+          const childElements = children.filter(c => c.nodeType === Node.ELEMENT_NODE);
+          const textChildren = children.filter(c => c.nodeType === Node.TEXT_NODE && c.textContent.trim().length > 0);
+
+          if (children.length === 0) {
+            return `${indent}<${node.tagName}${attrs}/>\n`;
+          }
+          if (childElements.length === 0 && textChildren.length > 0) {
+            return `${indent}<${node.tagName}${attrs}>${textChildren[0].textContent.trim()}</${node.tagName}>\n`;
+          }
+          let inner = '';
+          for (const child of children) {
+            if (child.nodeType === Node.ELEMENT_NODE) {
+              inner += serializeNode(child, level + 1);
+            }
+          }
+          return `${indent}<${node.tagName}${attrs}>\n${inner}${indent}</${node.tagName}>\n`;
+        }
+        return '';
+      }
+
+      let result = '<?xml version="1.0" encoding="UTF-8"?>\n';
+      result += serializeNode(xmlDoc.documentElement, 0);
+      return result.trim();
+    }
+
+    async function saveModalFileContent() {
+      const content = document.getElementById('modal-file-content').value;
+      const saveBtn = document.getElementById('modal-save-btn');
+      const statusMsg = document.getElementById('modal-status-msg');
+
+      saveBtn.disabled = true;
+      statusMsg.innerText = "Salvataggio in corso...";
+
+      try {
+        const res = await fetch('/api/file-content', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            target: currentEditingTarget,
+            file: currentEditingName,
+            content: content
+          })
+        });
+
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "Errore salvataggio");
+
+        statusMsg.innerText = "✅ File salvato con successo!";
+        appendTerminalLog({
+          type: "CONFIG_SAVED",
+          stepName: "Editor Config",
+          message: `File '${data.filename}' modificato e salvato con successo (${data.sizeBytes} bytes).`
+        });
+        loadInputsMetadata();
+        if (currentEditingName && currentEditingName.endsWith('.bpmn')) {
+          loadBpmnFile(currentEditingName);
+        }
+        setTimeout(() => { closeFileEditorModal(); }, 600);
+      } catch (err) {
+        statusMsg.innerText = "❌ Errore: " + err.message;
+        alert("Errore salvataggio file: " + err.message);
+      } finally {
+        saveBtn.disabled = false;
+      }
+    }
+
+    async function deleteRobotModel(robotFileName) {
+      if (!confirm(`Sei sicuro di voler rimuovere il modello robot '${robotFileName}' dalla missione?`)) return;
+
+      try {
+        const res = await fetch(`/api/models?name=${encodeURIComponent(robotFileName)}`, { method: 'DELETE' });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "Errore eliminazione");
+
+        appendTerminalLog({
+          type: "ROBOT_REMOVED",
+          stepName: "Gestione Modelli",
+          message: `Modello robot '${robotFileName}' rimosso dalla missione.`
+        });
+        loadInputsMetadata();
+      } catch (err) {
+        alert("Errore rimozione robot: " + err.message);
+      }
+    }
+
+    async function resetToDefaultInputs() {
+      if (!confirm("Ripristinare tutti i file di input della missione (GlobalMission, 4 Robot, semantics, taxonomy, behavioral) ai valori originali di tesi?")) return;
+
+      try {
+        const res = await fetch('/api/reset-inputs', { method: 'POST' });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "Errore reset");
+
+        alert("Tutti i file di input della missione sono stati ripristinati con successo!");
+        appendTerminalLog({
+          type: "RESET_COMPLETED",
+          stepName: "Ripristino Dataset",
+          message: "Tutti i file di input (BPMN e JSON) ripristinati ai valori originali di tesi."
+        });
+        loadInputsMetadata();
+        loadBpmnFile('UnifiedMission.bpmn');
+      } catch (err) {
+        alert("Errore ripristino: " + err.message);
+      }
+    }
+
+    // Call loadInputsMetadata on page load
+    window.addEventListener('DOMContentLoaded', () => {
+      loadInputsMetadata();
+    });
+
+    async function loadBpmnFile(fileName) {
+      document.getElementById('select-model-view').value = fileName;
+      document.getElementById('link-download-bpmn').href = `/api/bpmn/${fileName}`;
+      document.getElementById('welcome-idle-card').classList.add('hidden');
+
+      try {
+        const response = await fetch(`/api/bpmn/${fileName}`);
+        if (!response.ok) throw new Error("File not found on server");
+        const xml = await response.text();
+
+        if (viewer) {
+          await viewer.importXML(xml);
+          viewer.get('canvas').zoom('fit-viewport');
+        }
+      } catch (err) {
+        console.warn("Could not render XML in bpmn-js:", err.message);
+      }
+    }
+
+    function onMatcherChange() {
+      const matcher = document.getElementById('matcher-select').value;
+      const keyContainer = document.getElementById('api-key-container');
+      const desc = document.getElementById('matcher-description');
+      if (matcher === 'LLM_REASONER') {
+        keyContainer.classList.remove('hidden');
+        desc.innerText = "Ragionamento neurale su linguaggio naturale tramite Google Gemini Flash 2.0 AI.";
+      } else if (matcher === 'ONTOLOGY_STRICT') {
+        keyContainer.classList.add('hidden');
+        desc.innerText = "Verifica rigorosa basata esclusivamente sull'ontologia formale OWL/JSON.";
+      } else {
+        keyContainer.classList.add('hidden');
+        desc.innerText = "Usa taxonomy.json e semantics.json per mappare i concetti di interazione.";
+      }
+    }
+
+    function saveApiKey(val) {
+      if (val && val.trim().length > 0) {
+        localStorage.setItem('mrs_gemini_api_key', val.trim());
+      } else {
+        localStorage.removeItem('mrs_gemini_api_key');
+      }
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      const savedKey = localStorage.getItem('mrs_gemini_api_key');
+      const input = document.getElementById('gemini-api-key');
+      if (savedKey && input) {
+        input.value = savedKey;
+      }
+    });
+
+    document.getElementById('select-model-view').addEventListener('change', (e) => {
+      loadBpmnFile(e.target.value);
+    });
+
+    function startSynthesis() {
+      const playText = document.getElementById('text-play');
+      const playIcon = document.getElementById('icon-play');
+      const mode = document.getElementById('select-mode').value;
+      const matcher = document.getElementById('matcher-select').value;
+      const delay = (mode === 'demo') ? 850 : 0;
+      const apiKeyInput = document.getElementById('gemini-api-key');
+      const apiKey = apiKeyInput ? apiKeyInput.value.trim() : '';
+
+      playText.innerText = "Sintesi in corso...";
+      playIcon.classList.add('animate-spin');
+      document.getElementById('stat-status').innerText = (mode === 'demo') ? "Esecuzione Didattica Live..." : "Elaborazione Turbo...";
+      document.getElementById('stat-status').className = "text-amber-400 font-semibold";
+
+      let url = `/api/synthesize?delay=${delay}&matcher=${encodeURIComponent(matcher)}`;
+      if (apiKey) {
+        url += `&apiKey=${encodeURIComponent(apiKey)}`;
+      }
+
+      fetch(url, { method: 'POST' })
+        .then(res => {
+          if (!res.ok) throw new Error("HTTP error: " + res.status);
+          switchMainTab('canvas');
+        })
+        .catch(err => {
+          alert("Errore avvio sintesi: " + err.message);
+          playText.innerText = "Avvia Sintesi Live";
+          playIcon.classList.remove('animate-spin');
+        });
+    }
+
+    document.getElementById('btn-run-synthesis').addEventListener('click', startSynthesis);
+
+    function inspectElement(element) {
+      const bo = element.businessObject;
+      const title = bo.name || bo.id;
+      const type = bo.$type.replace('bpmn:', '');
+
+      document.getElementById('inspect-title').innerText = `${type}: "${title}"`;
+      document.getElementById('inspect-subtitle').innerText = `ID: ${bo.id}`;
+
+      let badgesHtml = `<span class="px-2 py-0.5 rounded bg-blue-500/10 text-blue-400 border border-blue-500/20 font-mono">${type}</span>`;
+
+      if (bo.extensionElements && bo.extensionElements.values) {
+        bo.extensionElements.values.forEach(ext => {
+          if (ext.$children) {
+            ext.$children.forEach(c => {
+              if (c.name && c.value) {
+                badgesHtml += `<span class="px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-mono">${c.name}: ${c.value}</span>`;
+              }
+            });
+          }
+        });
+      }
+
+      document.getElementById('inspect-badges').innerHTML = badgesHtml;
+    }
+
+    function switchMainTab(tab) {
+      document.getElementById('tab-content-canvas').classList.add('hidden');
+      document.getElementById('tab-content-matrix').classList.add('hidden');
+      document.getElementById('tab-content-logs').classList.add('hidden');
+
+      document.getElementById('tab-btn-canvas').className = "px-3 py-1.5 font-medium text-slate-400 hover:text-slate-200 border-b-2 border-transparent transition";
+      document.getElementById('tab-btn-matrix').className = "px-3 py-1.5 font-medium text-slate-400 hover:text-slate-200 border-b-2 border-transparent transition";
+      document.getElementById('tab-btn-logs').className = "px-3 py-1.5 font-medium text-slate-400 hover:text-slate-200 border-b-2 border-transparent transition";
+
+      if (tab === 'canvas') {
+        document.getElementById('tab-content-canvas').classList.remove('hidden');
+        document.getElementById('tab-btn-canvas').className = "px-3 py-1.5 font-semibold text-blue-400 border-b-2 border-blue-500 transition";
+        if (viewer && synthesisHasRun) viewer.get('canvas').zoom('fit-viewport');
+      } else if (tab === 'matrix') {
+        document.getElementById('tab-content-matrix').classList.remove('hidden');
+        document.getElementById('tab-btn-matrix').className = "px-3 py-1.5 font-semibold text-blue-400 border-b-2 border-blue-500 transition";
+      } else if (tab === 'logs') {
+        document.getElementById('tab-content-logs').classList.remove('hidden');
+        document.getElementById('tab-btn-logs').className = "px-3 py-1.5 font-semibold text-blue-400 border-b-2 border-blue-500 transition";
+      }
+    }
+
+    function zoomIn() { if (viewer) viewer.get('zoomScroll').stepZoom(1); }
+    function zoomOut() { if (viewer) viewer.get('zoomScroll').stepZoom(-1); }
+    function zoomReset() { if (viewer) viewer.get('canvas').zoom('fit-viewport'); }
+  </script>
+
+  <!-- ========================================================================= -->
+  <!-- MODAL: File Inspector & Editor (Semantics / Taxonomy / Behavioral / BPMN)  -->
+  <!-- ========================================================================= -->
+  <div id="file-editor-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-700/80 rounded-2xl w-full max-w-4xl max-h-[90vh] flex flex-col shadow-2xl shadow-black/80 overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+      <!-- Modal Header -->
+      <div class="px-5 py-3.5 border-b border-slate-800 bg-slate-950/60 flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <div class="w-8 h-8 rounded-lg bg-blue-600/20 text-blue-400 flex items-center justify-center text-sm font-mono font-bold" id="modal-file-icon">{}</div>
+          <div>
+            <h3 class="text-sm font-bold text-white flex items-center gap-2">
+              <span id="modal-file-title">semantics.json</span>
+              <span id="modal-file-badge" class="px-2 py-0.5 rounded text-[10px] font-mono bg-slate-800 text-slate-300">JSON Schema</span>
+            </h3>
+            <p class="text-[11px] text-slate-400" id="modal-file-desc">Modifica o ispeziona i contratti della missione.</p>
+          </div>
+        </div>
+        <button onclick="closeFileEditorModal()" class="text-slate-400 hover:text-white p-1.5 rounded-lg hover:bg-slate-800 transition">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
+      </div>
+
+      <!-- Modal Body (Code Textarea) -->
+      <div class="p-4 flex-1 overflow-hidden flex flex-col bg-slate-950/90 relative">
+        <textarea id="modal-file-content" spellcheck="false" class="w-full flex-1 bg-slate-900 text-slate-200 font-mono text-xs p-3.5 rounded-xl border border-slate-800 focus:outline-none focus:border-blue-500 leading-relaxed resize-none selection:bg-blue-600 selection:text-white" style="min-height: 400px;"></textarea>
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="px-5 py-3 border-t border-slate-800 bg-slate-950/60 flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <button onclick="formatModalJson()" class="px-3 py-1.5 rounded-lg border border-slate-700 hover:bg-slate-800 text-xs text-slate-300 font-medium transition flex items-center gap-1.5">
+            <span>⚡ Formatta JSON</span>
+          </button>
+          <span id="modal-status-msg" class="text-xs text-slate-400"></span>
+        </div>
+        <div class="flex items-center gap-2">
+          <button onclick="closeFileEditorModal()" class="px-3 py-1.5 rounded-lg border border-slate-700 hover:bg-slate-800 text-xs text-slate-300 font-medium transition">
+            Annulla
+          </button>
+          <button onclick="saveModalFileContent()" id="modal-save-btn" class="px-4 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold shadow transition flex items-center gap-1.5">
+            <span>💾 Salva Modifiche</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

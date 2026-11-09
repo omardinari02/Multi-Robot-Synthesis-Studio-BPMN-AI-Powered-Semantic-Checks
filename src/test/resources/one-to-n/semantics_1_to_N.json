@@ -1,0 +1,38 @@
+[
+  {
+    "robotId": "Drone",
+    "taskId": "Task_Coordinate",
+    "messageName": "weedPosition",
+    "dataType": "MapData",
+    "semanticDescription": "Mappa della zona di lavoro rilevata dal Drone per pianificare le attività dei robot",
+    "semanticConcept": "work_area_map",
+    "receiverTaskId": "Task_Movimento",
+    "receiverDataType": "MapData",
+    "receiverSemanticDescription": "MapData che descrive la mappa della zona di lavoro per pianificare il taglio",
+    "receiverSemanticConcept": "work_area_map"
+  },
+  {
+    "robotId": "Drone",
+    "taskId": "Task_Coordinate",
+    "messageName": "digPlan",
+    "dataType": "MapData",
+    "semanticDescription": "Mappa della zona di lavoro rilevata dal Drone per pianificare le attività dei robot",
+    "semanticConcept": "work_area_map",
+    "receiverTaskId": "Task_Posizionamento",
+    "receiverDataType": "MapData",
+    "receiverSemanticDescription": "MapData che descrive la mappa della zona di lavoro per pianificare lo scavo",
+    "receiverSemanticConcept": "work_area_map"
+  },
+  {
+    "robotId": "Drone",
+    "taskId": "Task_Coordinate",
+    "messageName": "seedPlan",
+    "dataType": "MapData",
+    "semanticDescription": "Mappa della zona di lavoro rilevata dal Drone per pianificare le attività dei robot",
+    "semanticConcept": "work_area_map",
+    "receiverTaskId": "Task_Carica",
+    "receiverDataType": "MapData",
+    "receiverSemanticDescription": "MapData che descrive la mappa della zona di lavoro per pianificare la semina",
+    "receiverSemanticConcept": "work_area_map"
+  }
+]

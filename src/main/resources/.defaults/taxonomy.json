@@ -1,0 +1,13 @@
+{
+  "dataTypes": {
+    "CoordinateZona": ["Coordinate"],
+    "CoordinateTrattoreVicino": ["Coordinate"],
+    "latitude.Double": ["CoordinateZona", "CoordinateTrattoreVicino"],
+    "longitude.Double": ["CoordinateZona", "CoordinateTrattoreVicino"],
+    "tractorId.String": ["CoordinateTrattoreVicino"]
+  },
+  "semanticConcepts": {
+    "work_area_location": ["physical_location"],
+    "selected_tractor_location": ["physical_location"]
+  }
+}
