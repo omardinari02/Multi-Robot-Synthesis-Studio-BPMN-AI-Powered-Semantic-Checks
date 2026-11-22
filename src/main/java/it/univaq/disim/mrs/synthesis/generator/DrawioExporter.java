@@ -29,12 +29,12 @@ public class DrawioExporter {
 
             // 1. Generate one diagram for each discovered local robot model.
             for (Map.Entry<String, BpmnModelInstance> entry : context.getAllRobotModels().entrySet()) {
-                String robotName = entry.getKey().replace(".bpmn", "").replace("_enhanced", "");
+                String robotName = entry.getKey().replace(".bpmn", "").replace("_enhanced", "").replace("Part_", "");
                 String filePath = outputDir + robotName + "_Visual_Thesis.drawio";
-                generateDynamicDrawio(entry.getValue(), robotName, filePath);
+                generateDynamicDrawio(context, entry.getValue(), robotName, filePath);
             }
 
-            // 2. Generer le diagramme unifie (Unified Mission) b n-nidam dyal t-taw7id
+            // 2. Generate the unified diagram (Unified Mission) matching Figure 5.14
             generateUnifiedDrawio(context, outputDir + "UnifiedMission_Visual_Thesis.drawio");
 
             logger.info("Draw.io files generated successfully in {}", outputDir);
@@ -43,15 +43,16 @@ public class DrawioExporter {
         }
     }
 
-    private void generateDynamicDrawio(BpmnModelInstance model, String robotName, String filePath) throws Exception {
+    private void generateDynamicDrawio(MissionContext context, BpmnModelInstance model, String robotName, String filePath) throws Exception {
         StringBuilder xml = new StringBuilder();
-        xml.append("<mxfile><diagram name=\"").append(robotName).append("_Enhanced\"><mxGraphModel dx=\"1000\" dy=\"1000\" grid=\"1\" gridSize=\"10\" guides=\"1\" tooltips=\"1\" connect=\"1\" arrows=\"1\" fold=\"1\" page=\"1\" pageScale=\"1\" pageWidth=\"1169\" pageHeight=\"827\" math=\"0\" shadow=\"0\">\n");
+        xml.append("<mxfile><diagram name=\"").append(robotName).append("_Enhanced\"><mxGraphModel dx=\"1200\" dy=\"1200\" grid=\"1\" gridSize=\"10\" guides=\"1\" tooltips=\"1\" connect=\"1\" arrows=\"1\" fold=\"1\" page=\"1\" pageScale=\"1\" pageWidth=\"1800\" pageHeight=\"1000\" background=\"#000000\" math=\"0\" shadow=\"0\">\n");
         xml.append("  <root>\n");
         xml.append("    <mxCell id=\"0\" />\n");
         xml.append("    <mxCell id=\"1\" parent=\"0\" />\n");
 
         for (BpmnShape shape : model.getModelElementsByType(BpmnShape.class)) {
             BaseElement element = shape.getBpmnElement();
+            if (element == null) continue;
             double x = shape.getBounds().getX();
             double y = shape.getBounds().getY();
             double w = shape.getBounds().getWidth();
@@ -60,20 +61,23 @@ public class DrawioExporter {
             String name = (element instanceof FlowNode && ((FlowNode) element).getName() != null) ? ((FlowNode) element).getName() : "";
 
             if (element instanceof SendTask || element instanceof ReceiveTask) {
-                String sender = element instanceof SendTask ? robotName : "?";
-                String receiver = element instanceof ReceiveTask ? robotName : "?";
-                xml.append(createChoreographyTask(id, sender, name, receiver, x, y, 140, 90));
+                String cleanMsg = extractCleanMessageName(name);
+                String sender = element instanceof SendTask ? robotName : findTargetRobot(context, cleanMsg, false);
+                String receiver = element instanceof ReceiveTask ? robotName : findTargetRobot(context, cleanMsg, true);
+                String op = UnifiedDiagramBuilder.getOperationNameFromGlobalMission(context, cleanMsg);
+                boolean isParallel = "weedPosition".equalsIgnoreCase(cleanMsg) || "availability".equalsIgnoreCase(cleanMsg);
+                xml.append(createChoreographyTask(id, sender, op, receiver, cleanMsg, isParallel, x, y, 150, 90));
             } else if (element instanceof ServiceTask) {
                 xml.append(createNormalTask(id, name, x, y, w, h));
             } else if (element instanceof ExclusiveGateway || element instanceof ParallelGateway) {
                 String type = element instanceof ExclusiveGateway ? "X" : "+";
-                xml.append(createGateway(id, type, x, y, w, h));
+                xml.append(createGateway(id, type, name, x, y, w, h));
             } else if (element instanceof IntermediateCatchEvent) {
-                xml.append(createTimer(id, name.isEmpty() ? "Timer" : name, x, y, w, h));
+                xml.append(createTimer(id, name.isEmpty() ? "Attesa 10 secondi" : name, x, y, w, h));
             } else if (element instanceof StartEvent) {
-                xml.append(createEvent(id, x, y, w, h, "#d5e8d4", "#82b366"));
+                xml.append(createStartEvent(id, robotName, x, y, w, h));
             } else if (element instanceof EndEvent) {
-                xml.append(createEvent(id, x, y, w, h, "#f8cecc", "#b85450"));
+                xml.append(createEndEvent(id, robotName, x, y, w, h));
             }
         }
 
@@ -94,49 +98,51 @@ public class DrawioExporter {
 
     private void generateUnifiedDrawio(MissionContext context, String filePath) throws Exception {
         StringBuilder xml = new StringBuilder();
-        xml.append("<mxfile><diagram name=\"Unified_Mission\"><mxGraphModel dx=\"1000\" dy=\"1000\" grid=\"1\" gridSize=\"10\" guides=\"1\" tooltips=\"1\" connect=\"1\" arrows=\"1\" fold=\"1\" page=\"1\" pageScale=\"1\" pageWidth=\"1600\" pageHeight=\"1200\" math=\"0\" shadow=\"0\">\n");
+        xml.append("<mxfile><diagram name=\"Unified_Mission\"><mxGraphModel dx=\"1400\" dy=\"1400\" grid=\"1\" gridSize=\"10\" guides=\"1\" tooltips=\"1\" connect=\"1\" arrows=\"1\" fold=\"1\" page=\"1\" pageScale=\"1\" pageWidth=\"2500\" pageHeight=\"1800\" background=\"#000000\" math=\"0\" shadow=\"0\">\n");
         xml.append("  <root>\n");
         xml.append("    <mxCell id=\"0\" />\n");
         xml.append("    <mxCell id=\"1\" parent=\"0\" />\n");
 
-        // 100% Dynamique: jbd smyat dyal robots
+        List<String> orderedKeys = UnifiedDiagramBuilder.getOrderedRobotKeys(context);
         List<String> dynamicRobotOrder = new ArrayList<>();
-        for (String key : context.getAllRobotModels().keySet()) {
+        for (String key : orderedKeys) {
             dynamicRobotOrder.add(key.replace(".bpmn", "").replace("_enhanced", "").replace("Part_", ""));
         }
 
         Map<String, Integer> poolYMap = new HashMap<>();
         int poolHeight = 220;
+        int poolGap = 130;
         int currentY = 50;
+        int poolWidth = 2400;
 
         for (String robot : dynamicRobotOrder) {
             String matchKey = getRobotKey(context, robot);
             if (matchKey != null) {
                 poolYMap.put(matchKey, currentY);
-                xml.append(createPool("pool_" + robot, robot, 20, currentY, 1400, poolHeight));
-                currentY += poolHeight + 60;
+                xml.append(createPool("pool_" + robot, robot, 20, currentY, poolWidth, poolHeight));
+                currentY += poolHeight + poolGap;
             }
         }
         boolean hasBroadcast = context.getValidatedMatches().stream()
                 .anyMatch(match -> "Broadcast".equalsIgnoreCase(match.getReceiverRobot()));
         if (hasBroadcast) {
             poolYMap.put("Broadcast", currentY);
-            xml.append(createPool("pool_Broadcast", "Broadcast", 20, currentY, 1400, poolHeight));
-            currentY += poolHeight + 60;
+            xml.append(createPool("pool_Broadcast", "Broadcast", 20, currentY, poolWidth, poolHeight));
+            currentY += poolHeight + poolGap;
         }
 
-        // Nidam dyal T-taw7id (Deduplication System)
+        // Deduplication System (Nidam dyal T-taw7id)
         Map<String, String> interactionMap = new HashMap<>();
         List<String> drawnMessages = new ArrayList<>();
 
-        for (Map.Entry<String, BpmnModelInstance> entry : context.getAllRobotModels().entrySet()) {
-            String key = entry.getKey();
+        for (String key : orderedKeys) {
             String robotName = key.replace(".bpmn", "").replace("_enhanced", "").replace("Part_", "");
             int baseY = poolYMap.getOrDefault(key, 50) + 60;
 
-            BpmnModelInstance model = entry.getValue();
+            BpmnModelInstance model = context.getRobotModel(key);
             for (BpmnShape shape : model.getModelElementsByType(BpmnShape.class)) {
                 BaseElement element = shape.getBpmnElement();
+                if (element == null) continue;
                 double x = shape.getBounds().getX() + 50;
                 double origY = shape.getBounds().getY();
                 double y = baseY + (origY % 100);
@@ -146,37 +152,40 @@ public class DrawioExporter {
                 String name = (element instanceof FlowNode && ((FlowNode) element).getName() != null) ? ((FlowNode) element).getName() : "";
 
                 if (element instanceof SendTask || element instanceof ReceiveTask) {
-                    String cleanName = name.replace("Invia: ", "").replace("Ricevi: ", "").trim();
-                    String sharedId = "Choreo_" + cleanName.replaceAll("\\s+",""); // ID mcharek binathom
+                    String cleanMsg = extractCleanMessageName(name);
+                    if (cleanMsg.isEmpty()) cleanMsg = element.getId();
+                    String sharedId = "Choreo_" + cleanMsg.replaceAll("[^A-Za-z0-9_]", "");
                     interactionMap.put(id, sharedId);
 
-                    // Ila mazal matrsem, nrsmoh w nmarkiwh
-                    if (!drawnMessages.contains(cleanName)) {
-                        String targetRobot = findTargetRobot(context, name, element instanceof SendTask);
+                    if (!drawnMessages.contains(cleanMsg.toLowerCase())) {
+                        String targetRobot = findTargetRobot(context, cleanMsg, element instanceof SendTask);
                         String targetKey = "Broadcast".equalsIgnoreCase(targetRobot)
                                 ? "Broadcast" : getRobotKey(context, targetRobot);
                         int targetY = poolYMap.getOrDefault(targetKey, baseY);
                         int myPoolY = poolYMap.getOrDefault(key, baseY);
 
-                        y = (myPoolY + targetY) / 2 + (poolHeight / 2) + 30; // Centre bin les 2 pools
+                        int topPoolY = Math.min(myPoolY, targetY);
+                        y = topPoolY + poolHeight + 20; // Centered in the corridor between pools
 
                         String sender = element instanceof SendTask ? robotName : targetRobot;
                         String receiver = element instanceof ReceiveTask ? robotName : targetRobot;
+                        String operationName = UnifiedDiagramBuilder.getOperationNameFromGlobalMission(context, cleanMsg);
+                        boolean isParallel = "weedPosition".equalsIgnoreCase(cleanMsg) || "availability".equalsIgnoreCase(cleanMsg);
 
-                        xml.append(createChoreographyTask(sharedId, sender, cleanName, receiver, x, y, 140, 80));
-                        drawnMessages.add(cleanName);
+                        xml.append(createChoreographyTask(sharedId, sender, operationName, receiver, cleanMsg, isParallel, x, y, 150, 90));
+                        drawnMessages.add(cleanMsg.toLowerCase());
                     }
                 } else if (element instanceof ServiceTask) {
                     xml.append(createNormalTask(id, name, x, y, w, h));
                 } else if (element instanceof ExclusiveGateway || element instanceof ParallelGateway) {
                     String type = element instanceof ExclusiveGateway ? "X" : "+";
-                    xml.append(createGateway(id, type, x, y, w, h));
+                    xml.append(createGateway(id, type, name, x, y, w, h));
                 } else if (element instanceof IntermediateCatchEvent) {
-                    xml.append(createTimer(id, name.isEmpty() ? "Timer" : name, x, y, w, h));
+                    xml.append(createTimer(id, name.isEmpty() ? "Attesa 10 secondi" : name, x, y, w, h));
                 } else if (element instanceof StartEvent) {
-                    xml.append(createEvent(id, x, y, w, h, "#d5e8d4", "#82b366"));
+                    xml.append(createStartEvent(id, robotName, x, y, w, h));
                 } else if (element instanceof EndEvent) {
-                    xml.append(createEvent(id, x, y, w, h, "#f8cecc", "#b85450"));
+                    xml.append(createEndEvent(id, robotName, x, y, w, h));
                 }
             }
 
@@ -188,7 +197,6 @@ public class DrawioExporter {
                     String targetId = robotName + "_" + flow.getTarget().getId();
                     String edgeLabel = flow.getName() != null ? flow.getName() : "";
 
-                    // Rbt les fleches b l'mrbe3 l'mcharek
                     if (interactionMap.containsKey(sourceId)) sourceId = interactionMap.get(sourceId);
                     if (interactionMap.containsKey(targetId)) targetId = interactionMap.get(targetId);
 
@@ -206,14 +214,42 @@ public class DrawioExporter {
     private String getRobotKey(MissionContext context, String name) {
         if (name == null || name.equals("?")) return null;
         for (String key : context.getAllRobotModels().keySet()) {
+            String cleanKey = key.replace(".bpmn", "").replace("_enhanced", "").replace("Part_", "");
+            if (cleanKey.equalsIgnoreCase(name)) return key;
+        }
+        for (String key : context.getAllRobotModels().keySet()) {
             if (key.toLowerCase().contains(name.toLowerCase())) return key;
         }
         return null;
     }
 
-    private String findTargetRobot(MissionContext context, String taskName, boolean isSender) {
-        if (taskName == null) return "?";
-        String cleanMsg = taskName.replace("Invia: ", "").replace("Ricevi: ", "").trim();
+    private String extractCleanMessageName(String taskName) {
+        if (taskName == null) return "";
+        String clean = taskName.trim();
+        if (clean.startsWith("Invia: ")) clean = clean.substring(7).trim();
+        else if (clean.startsWith("Invia ")) clean = clean.substring(6).trim();
+        else if (clean.startsWith("Ricevi: ")) clean = clean.substring(8).trim();
+        else if (clean.startsWith("Ricevi ")) clean = clean.substring(7).trim();
+
+        if (clean.contains("[msg:")) {
+            int start = clean.indexOf("[msg:") + 5;
+            int end = clean.indexOf("]", start);
+            if (end != -1) {
+                String sub = clean.substring(start, end).trim();
+                if (sub.contains("|")) sub = sub.substring(0, sub.indexOf('|')).trim();
+                return sub;
+            }
+        }
+
+        if (clean.contains("(")) {
+            clean = clean.substring(0, clean.indexOf('(')).trim();
+        }
+        clean = clean.replace("|||", "").trim();
+        return clean;
+    }
+
+    private String findTargetRobot(MissionContext context, String cleanMsg, boolean isSender) {
+        if (cleanMsg == null || cleanMsg.isEmpty()) return "?";
         for (InteractionMatch m : context.getValidatedMatches()) {
             if (m.getMessageName().equalsIgnoreCase(cleanMsg)) {
                 String target = isSender ? m.getReceiverRobot() : m.getSenderRobot();
@@ -223,41 +259,72 @@ public class DrawioExporter {
         return "?";
     }
 
-    // --- Helper Methods (Alwan w l'achkal) ---
+    // --- Helper Methods (Dark Theme & Styling for Thesis Figure 5.14) ---
     private String createPool(String id, String name, double x, double y, double w, double h) {
-        return "<mxCell id=\"" + id + "\" value=\"&lt;b&gt;" + name + "&lt;/b&gt;\" style=\"swimlane;horizontal=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;fontColor=#333333;strokeColor=#666666;startSize=40;\" vertex=\"1\" parent=\"1\">\n" +
+        return "<mxCell id=\"" + id + "\" value=\"&lt;b&gt;" + name + "&lt;/b&gt;\" style=\"swimlane;horizontal=0;whiteSpace=wrap;html=1;fillColor=#000000;fontColor=#ffffff;strokeColor=#ffffff;strokeWidth=2;startSize=40;collapsible=0;fontSize=12;\" vertex=\"1\" parent=\"1\">\n" +
                "  <mxGeometry x=\"" + x + "\" y=\"" + y + "\" width=\"" + w + "\" height=\"" + h + "\" as=\"geometry\" />\n</mxCell>\n";
     }
 
     private String createNormalTask(String id, String name, double x, double y, double w, double h) {
-        return "<mxCell id=\"" + id + "\" value=\"" + name + "\" style=\"rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;fontColor=#000000;strokeColor=#6c8ebf;fontStyle=1;\" vertex=\"1\" parent=\"1\">\n" +
+        return "<mxCell id=\"" + id + "\" value=\"" + name + "\" style=\"rounded=1;arcSize=12;whiteSpace=wrap;html=1;fillColor=#121212;fontColor=#ffffff;strokeColor=#ffffff;strokeWidth=1.5;fontSize=11;align=center;\" vertex=\"1\" parent=\"1\">\n" +
                "  <mxGeometry x=\"" + x + "\" y=\"" + y + "\" width=\"" + Math.max(120, w) + "\" height=\"" + Math.max(60, h) + "\" as=\"geometry\" />\n</mxCell>\n";
     }
 
-    private String createChoreographyTask(String id, String top, String mid, String bot, double x, double y, double w, double h) {
-        return "<mxCell id=\"" + id + "\" value=\"&lt;b&gt;" + top + "&lt;/b&gt;&lt;hr&gt;" + mid + "&lt;hr&gt;&lt;b&gt;" + bot + "&lt;/b&gt;\" style=\"rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;fontColor=#000000;strokeColor=#82b366;align=center;\" vertex=\"1\" parent=\"1\">\n" +
-               "  <mxGeometry x=\"" + (x - 20) + "\" y=\"" + (y - 10) + "\" width=\"" + w + "\" height=\"" + h + "\" as=\"geometry\" />\n</mxCell>\n";
+    private String createChoreographyTask(String id, String top, String mid, String bot, String msg, boolean parallel, double x, double y, double w, double h) {
+        String parallelHtml = parallel ? "&lt;div style=&quot;font-weight:bold;letter-spacing:2px;color:#cccccc;font-size:10px;margin-top:2px;&quot;&gt;|||&lt;/div&gt;" : "";
+        String msgHtml = (msg != null && !msg.isEmpty()) ? "&lt;div style=&quot;font-size:9px;color:#93c5fd;margin-top:3px;&quot;&gt;&#9993; " + msg + "&lt;/div&gt;" : "";
+
+        String tableValue = "&lt;table style=&quot;width:100%;height:100%;border-collapse:collapse;text-align:center;font-family:Helvetica,sans-serif;&quot;&gt;"
+                + "&lt;tr style=&quot;height:24px;background-color:#333333;border-bottom:1px solid #ffffff;&quot;&gt;"
+                + "&lt;td style=&quot;color:#ffffff;font-weight:bold;font-size:11px;&quot;&gt;" + top + "&lt;/td&gt;&lt;/tr&gt;"
+                + "&lt;tr style=&quot;height:42px;background-color:#1a1a1a;&quot;&gt;"
+                + "&lt;td style=&quot;color:#ffffff;font-size:11px;padding:2px 4px;&quot;&gt;&lt;div&gt;" + mid + "&lt;/div&gt;"
+                + parallelHtml + msgHtml + "&lt;/td&gt;&lt;/tr&gt;"
+                + "&lt;tr style=&quot;height:24px;background-color:#444444;border-top:1px solid #ffffff;&quot;&gt;"
+                + "&lt;td style=&quot;color:#ffffff;font-weight:bold;font-size:11px;&quot;&gt;" + bot + "&lt;/td&gt;&lt;/tr&gt;"
+                + "&lt;/table&gt;";
+
+        return "<mxCell id=\"" + id + "\" value=\"" + tableValue + "\" style=\"rounded=1;arcSize=10;whiteSpace=wrap;html=1;overflow=hidden;fillColor=#1a1a1a;strokeColor=#ffffff;strokeWidth=1.5;align=center;\" vertex=\"1\" parent=\"1\">\n" +
+               "  <mxGeometry x=\"" + (x - 20) + "\" y=\"" + (y - 10) + "\" width=\"" + Math.max(150, w) + "\" height=\"" + Math.max(90, h) + "\" as=\"geometry\" />\n</mxCell>\n";
     }
 
-    private String createGateway(String id, String type, double x, double y, double w, double h) {
-        return "<mxCell id=\"" + id + "\" value=\"&lt;b&gt;" + type + "&lt;/b&gt;\" style=\"rhombus;whiteSpace=wrap;html=1;fillColor=#ffe6cc;fontColor=#000000;strokeColor=#d79b00;fontStyle=1;\" vertex=\"1\" parent=\"1\">\n" +
+    private String createGateway(String id, String type, String label, double x, double y, double w, double h) {
+        String labelStyle = (label != null && !label.isEmpty()) ? "verticalLabelPosition=bottom;verticalAlign=top;" : "";
+        String value = "&lt;b&gt;" + type + "&lt;/b&gt;";
+        if (label != null && !label.isEmpty()) {
+            value = "&lt;b&gt;" + type + "&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-size:10px;font-weight:normal;&quot;&gt;" + label + "&lt;/span&gt;";
+        }
+        return "<mxCell id=\"" + id + "\" value=\"" + value + "\" style=\"rhombus;whiteSpace=wrap;html=1;fillColor=#121212;fontColor=#ffffff;strokeColor=#ffffff;strokeWidth=1.5;fontStyle=1;fontSize=14;align=center;" + labelStyle + "\" vertex=\"1\" parent=\"1\">\n" +
                "  <mxGeometry x=\"" + x + "\" y=\"" + y + "\" width=\"" + Math.max(50, w) + "\" height=\"" + Math.max(50, h) + "\" as=\"geometry\" />\n</mxCell>\n";
     }
 
     private String createTimer(String id, String label, double x, double y, double w, double h) {
-        return "<mxCell id=\"" + id + "\" value=\"" + label + "\" style=\"ellipse;whiteSpace=wrap;html=1;fillColor=#e1d5e7;fontColor=#000000;strokeColor=#9673a6;fontStyle=1;\" vertex=\"1\" parent=\"1\">\n" +
-               "  <mxGeometry x=\"" + x + "\" y=\"" + y + "\" width=\"" + Math.max(50, w) + "\" height=\"" + Math.max(50, h) + "\" as=\"geometry\" />\n</mxCell>\n";
+        String displayLabel = (label == null || label.isEmpty() || "Timer".equalsIgnoreCase(label)) ? "Attesa 10 secondi" : label;
+        return "<mxCell id=\"" + id + "\" value=\"" + displayLabel + "\" style=\"ellipse;shape=doubleEllipse;whiteSpace=wrap;html=1;fillColor=#121212;fontColor=#ffffff;strokeColor=#ffffff;strokeWidth=1.5;fontSize=10;verticalLabelPosition=top;verticalAlign=bottom;align=center;\" vertex=\"1\" parent=\"1\">\n" +
+               "  <mxGeometry x=\"" + x + "\" y=\"" + y + "\" width=\"" + Math.max(40, w) + "\" height=\"" + Math.max(40, h) + "\" as=\"geometry\" />\n</mxCell>\n";
     }
 
-    private String createEvent(String id, double x, double y, double w, double h, String fillColor, String strokeColor) {
-        return "<mxCell id=\"" + id + "\" value=\"\" style=\"ellipse;whiteSpace=wrap;html=1;fillColor=" + fillColor + ";strokeColor=" + strokeColor + ";strokeWidth=2;\" vertex=\"1\" parent=\"1\">\n" +
-               "  <mxGeometry x=\"" + x + "\" y=\"" + y + "\" width=\"" + w + "\" height=\"" + h + "\" as=\"geometry\" />\n</mxCell>\n";
+    private String createStartEvent(String id, String robotName, double x, double y, double w, double h) {
+        boolean isDrone = "drone".equalsIgnoreCase(robotName);
+        String fillColor = isDrone ? "#22c55e" : "#000000";
+        String label = isDrone ? "Accensione e inizio missione" : "Accensione";
+        return "<mxCell id=\"" + id + "\" value=\"" + label + "\" style=\"ellipse;whiteSpace=wrap;html=1;aspect=fixed;fillColor=" + fillColor + ";strokeColor=#ffffff;strokeWidth=2;verticalLabelPosition=bottom;verticalAlign=top;fontColor=#ffffff;fontSize=10;\" vertex=\"1\" parent=\"1\">\n" +
+               "  <mxGeometry x=\"" + x + "\" y=\"" + y + "\" width=\"" + Math.max(36, w) + "\" height=\"" + Math.max(36, h) + "\" as=\"geometry\" />\n</mxCell>\n";
+    }
+
+    private String createEndEvent(String id, String robotName, double x, double y, double w, double h) {
+        boolean isSeminatore = "seminatore".equalsIgnoreCase(robotName);
+        String fillColor = isSeminatore ? "#ef4444" : "#000000";
+        String label = isSeminatore ? "Spegnimento e fine missione" : "Spegnimento";
+        String shapeStyle = isSeminatore ? "ellipse;" : "ellipse;shape=doubleEllipse;";
+        return "<mxCell id=\"" + id + "\" value=\"" + label + "\" style=\"" + shapeStyle + "whiteSpace=wrap;html=1;aspect=fixed;fillColor=" + fillColor + ";strokeColor=#ffffff;strokeWidth=2;verticalLabelPosition=bottom;verticalAlign=top;fontColor=#ffffff;fontSize=10;\" vertex=\"1\" parent=\"1\">\n" +
+               "  <mxGeometry x=\"" + x + "\" y=\"" + y + "\" width=\"" + Math.max(36, w) + "\" height=\"" + Math.max(36, h) + "\" as=\"geometry\" />\n</mxCell>\n";
     }
 
     private String createEdge(String id, String source, String target, String label, boolean isDashed) {
-        String dashStyle = isDashed ? "dashed=1;dashPattern=8 8;" : "";
+        String dashStyle = isDashed ? "dashed=1;dashPattern=6 6;" : "";
         String valueAttr = !label.isEmpty() ? "value=\"" + label + "\" " : "";
-        return "<mxCell id=\"" + id + "\" " + valueAttr + "style=\"edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#333333;fontColor=#000000;strokeWidth=2;" + dashStyle + "\" edge=\"1\" parent=\"1\" source=\"" + source + "\" target=\"" + target + "\">\n" +
+        return "<mxCell id=\"" + id + "\" " + valueAttr + "style=\"edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#ffffff;fontColor=#ffffff;strokeWidth=1.5;" + dashStyle + "fontSize=10;\" edge=\"1\" parent=\"1\" source=\"" + source + "\" target=\"" + target + "\">\n" +
                "  <mxGeometry relative=\"1\" as=\"geometry\" />\n</mxCell>\n";
     }
 }

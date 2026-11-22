@@ -10,8 +10,8 @@ import org.camunda.bpm.model.bpmn.instance.di.Waypoint;
 
 public class BpmndiGenerator {
 
-    public static void createShape(BpmnModelInstance modelInstance, BpmnPlane plane, BaseElement element,
-                                   double x, double y, double width, double height) {
+    public static BpmnShape createShape(BpmnModelInstance modelInstance, BpmnPlane plane, BaseElement element,
+                                        double x, double y, double width, double height) {
         BpmnShape shape = modelInstance.newInstance(BpmnShape.class);
         shape.setBpmnElement(element);
         shape.setId(element.getId() + "_di");
@@ -24,6 +24,7 @@ public class BpmndiGenerator {
         shape.setBounds(bounds);
 
         plane.addChildElement(shape);
+        return shape;
     }
 
     public static void createEdge(BpmnModelInstance modelInstance, BpmnPlane plane, BaseElement flow,

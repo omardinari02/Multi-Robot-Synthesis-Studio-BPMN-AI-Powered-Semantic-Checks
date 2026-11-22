@@ -1263,8 +1263,9 @@
         rect.setAttribute('rx', '8');
         rect.setAttribute('ry', '8');
 
-        // Nascondi testi originali
+        // Nascondi testi ed icone originali (es. bustina standard SendTask)
         gfx.querySelectorAll('text:not(.web-choreo-band)').forEach(t => t.style.display = 'none');
+        gfx.querySelectorAll('path:not(.web-choreo-band), polygon:not(.web-choreo-band)').forEach(p => p.style.display = 'none');
 
         // 1. Banda Superiore (Sender - Bianca con intestazione blu)
         const topBand = document.createElementNS(svgNS, 'path');

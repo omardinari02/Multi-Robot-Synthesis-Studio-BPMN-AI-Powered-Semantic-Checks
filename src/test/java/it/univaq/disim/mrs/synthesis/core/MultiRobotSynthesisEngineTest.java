@@ -283,47 +283,21 @@ class MultiRobotSynthesisEngineTest {
         assertTrue(unified.getModelElementsByType(ReceiveTask.class).stream()
                         .allMatch(task -> task.getMessage() != null),
                 "Every ReceiveTask in the unified collaboration must reference a declared message.");
-        assertEquals(1, unified.getModelElementsByType(org.camunda.bpm.model.bpmn.instance.Participant.class).stream()
-                .filter(p -> "Global Choreography Flow".equals(p.getName())).count(),
-                "The global choreography must be cloned exactly once into the unified diagram.");
-        assertNotNull(unified.getModelElementById("Global_Event_Timer_10s"));
-        assertNull(unified.getModelElementById("Global_Global_Event_Timer_10s"),
-                "A duplicate copy of the global control flow must not be generated.");
+        assertFalse(unified.getModelElementsByType(org.camunda.bpm.model.bpmn.instance.Participant.class).stream()
+                .anyMatch(p -> "Global Choreography Flow".equals(p.getName())),
+                "The unified collaboration must contain only robot pools, not the global choreography specification.");
+        assertTrue(unified.getModelElementsByType(org.camunda.bpm.model.bpmn.instance.Participant.class).stream()
+                .anyMatch(p -> "Drone".equalsIgnoreCase(p.getName())));
+        assertTrue(unified.getModelElementsByType(org.camunda.bpm.model.bpmn.instance.Participant.class).stream()
+                .anyMatch(p -> "Tagliatore".equalsIgnoreCase(p.getName())));
+        assertTrue(unified.getModelElementsByType(org.camunda.bpm.model.bpmn.instance.Participant.class).stream()
+                .anyMatch(p -> "Scavatore".equalsIgnoreCase(p.getName())));
+        assertTrue(unified.getModelElementsByType(org.camunda.bpm.model.bpmn.instance.Participant.class).stream()
+                .anyMatch(p -> "Seminatore".equalsIgnoreCase(p.getName())));
         assertTrue(unified.getModelElementsByType(org.camunda.bpm.model.bpmn.instance.MessageFlow.class).stream()
                 .allMatch(flow -> flow.getSource() instanceof org.camunda.bpm.model.bpmn.instance.FlowNode
                         && flow.getTarget() instanceof org.camunda.bpm.model.bpmn.instance.FlowNode),
                 "The drawn message-flow endpoints must be the same task nodes used by the BPMN references.");
-        org.camunda.bpm.model.bpmn.instance.ExclusiveGateway globalAvailabilityGateway =
-                (org.camunda.bpm.model.bpmn.instance.ExclusiveGateway) unified.getModelElementById("Global_Gateway_Check_Availability");
-        assertNotNull(globalAvailabilityGateway, "Unified diagram must retain the global availability gateway.");
-        org.camunda.bpm.model.bpmn.instance.IntermediateCatchEvent globalTimer =
-                (org.camunda.bpm.model.bpmn.instance.IntermediateCatchEvent) unified.getModelElementById("Global_Event_Timer_10s");
-        assertNotNull(globalTimer, "Unified diagram must retain the global retry timer.");
-        org.camunda.bpm.model.bpmn.instance.TimerEventDefinition timerDefinition = globalTimer.getEventDefinitions().stream()
-                .filter(org.camunda.bpm.model.bpmn.instance.TimerEventDefinition.class::isInstance)
-                .map(org.camunda.bpm.model.bpmn.instance.TimerEventDefinition.class::cast).findFirst().orElseThrow();
-        assertEquals("PT10S", timerDefinition.getTimeDuration().getTextContent());
-        assertEquals("${availability == true}", unified.getModelElementById("Global_Flow_YES")
-                .getChildElementsByType(org.camunda.bpm.model.bpmn.instance.FormalExpression.class).stream()
-                .findFirst().orElseThrow().getTextContent());
-        assertEquals("${availability == false}", unified.getModelElementById("Global_Flow_NO")
-                .getChildElementsByType(org.camunda.bpm.model.bpmn.instance.FormalExpression.class).stream()
-                .findFirst().orElseThrow().getTextContent());
-        org.camunda.bpm.model.bpmn.instance.SequenceFlow retryFlow =
-                (org.camunda.bpm.model.bpmn.instance.SequenceFlow) unified.getModelElementById("Global_Flow_Loop");
-        assertEquals("Global_Task_availability", retryFlow.getTarget().getId(),
-                "The timeout path must loop back to the availability task.");
-        org.camunda.bpm.model.bpmn.instance.SequenceFlow unavailableFlow =
-                (org.camunda.bpm.model.bpmn.instance.SequenceFlow) unified.getModelElementById("Global_Flow_NO");
-        assertEquals("Global_Event_Timer_10s", unavailableFlow.getTarget().getId(),
-                "The unavailable branch must enter the retry timer.");
-        assertNotNull(unavailableFlow.getConditionExpression(), "The retry branch needs an explicit condition.");
-        assertTrue(unavailableFlow.getConditionExpression().getTextContent().contains("availability"));
-        org.camunda.bpm.model.bpmn.instance.SequenceFlow availableFlow =
-                (org.camunda.bpm.model.bpmn.instance.SequenceFlow) unified.getModelElementById("Global_Flow_YES");
-        assertNotNull(availableFlow.getConditionExpression(), "The success branch needs an explicit condition.");
-        assertEquals("Global_Task_seedingDone", ((org.camunda.bpm.model.bpmn.instance.SequenceFlow)
-                unified.getModelElementById("Global_Flow_7")).getTarget().getId());
     }
 
 
