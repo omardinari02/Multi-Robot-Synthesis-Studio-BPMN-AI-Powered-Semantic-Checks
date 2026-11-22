@@ -61,10 +61,25 @@ public class Main {
 
     static File discoverGlobalModel(File directory) {
         List<File> candidates = bpmnFiles(directory).filter(Main::isGlobalChoreography).collect(Collectors.toList());
-        if (candidates.size() != 1) {
+        if (candidates.isEmpty()) {
             throw new IllegalArgumentException("Expected exactly one global choreography BPMN by structure in "
-                    + directory.getAbsolutePath() + ", found " + candidates.size()
-                    + ". Pass the global BPMN path explicitly if multiple candidates exist.");
+                    + directory.getAbsolutePath() + ", found 0. Pass the global BPMN path explicitly if multiple candidates exist.");
+        }
+        if (candidates.size() == 1) {
+            return candidates.get(0);
+        }
+        // Se esistono più modelli (es. coreografia Camunda utente + benchmark di tesi), seleziona la coreografia Camunda
+        for (File candidate : candidates) {
+            if (candidate.getName().equalsIgnoreCase("GlobalMission_Choreography.bpmn")) {
+                logger.info("Trovate molteplici coreografie globali. Selezione della coreografia Camunda utente: {}", candidate.getName());
+                return candidate;
+            }
+        }
+        for (File candidate : candidates) {
+            if (candidate.getName().equalsIgnoreCase("GlobalMission.bpmn")) {
+                logger.info("Trovate molteplici coreografie globali. Selezione del modello di default: {}", candidate.getName());
+                return candidate;
+            }
         }
         return candidates.get(0);
     }
@@ -91,7 +106,13 @@ public class Main {
             boolean hasMessageFlows = !model.getModelElementsByType(MessageFlow.class).isEmpty();
             boolean hasNonExecutableProcess = model.getModelElementsByType(Process.class).stream()
                     .anyMatch(process -> !Boolean.TRUE.equals(process.isExecutable()));
-            return hasCollaboration && hasMessageFlows && hasNonExecutableProcess;
+            if (hasCollaboration && hasMessageFlows && hasNonExecutableProcess) {
+                return true;
+            }
+            // Camunda Modeler Choreography support (tasks contain '(Sender -> Receiver)' or filename indicates choreography)
+            boolean hasChoreoTasks = model.getModelElementsByType(org.camunda.bpm.model.bpmn.instance.Task.class).stream()
+                    .anyMatch(t -> t.getName() != null && t.getName().contains("->"));
+            return hasChoreoTasks;
         } catch (RuntimeException exception) {
             logger.debug("Skipping BPMN that cannot be classified as a global choreography: {} ({})",
                     file, exception.getMessage());

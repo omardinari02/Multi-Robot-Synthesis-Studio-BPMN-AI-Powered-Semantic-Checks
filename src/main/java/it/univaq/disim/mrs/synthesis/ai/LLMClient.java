@@ -170,7 +170,12 @@ public class LLMClient {
                     logger.info("Gemini endpoint validated successfully: {}", baseUrl);
                     break;
                 }
-                logger.warn("Gemini candidate {} returned HTTP {}", baseUrl, response.statusCode());
+                logger.warn(
+                    "Gemini candidate failed: {} | HTTP {} | Response: {}",
+                    baseUrl,
+                    response.statusCode(),
+                    response.body()
+                );
             } catch (Exception ex) {
                 lastEx = ex;
             }
@@ -243,7 +248,7 @@ public class LLMClient {
         urls.addAll(discovered);
 
         // Fallback standard URLs if discovery fails
-        String[] standardEndpoints = {
+        /*String[] standardEndpoints = {
                 "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent",
                 "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent",
                 "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-001:generateContent",
@@ -252,7 +257,11 @@ public class LLMClient {
                 "https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent",
                 "https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent",
                 "https://generativelanguage.googleapis.com/v1/models/gemini-pro:generateContent"
+        };*/
+        String[] standardEndpoints = {
+            "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent"
         };
+
         for (String std : standardEndpoints) {
             if (!urls.contains(std)) urls.add(std);
         }

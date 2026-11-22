@@ -44,6 +44,7 @@ public class SynthesisWebServer {
     private final Path ontologyFile = Paths.get("src/main/resources/taxonomy.json");
     private final Path semanticsFile = Paths.get("src/main/resources/semantics.json");
     private final Path behavioralFile = Paths.get("src/main/resources/behavioral-state.json");
+    private volatile String activeGlobalMission = "GlobalMission.bpmn";
 
     public SynthesisWebServer() {
         this(DEFAULT_PORT);
@@ -229,13 +230,17 @@ public class SynthesisWebServer {
             Map<String, Object> result = new LinkedHashMap<>();
 
             // 1. Global Mission
-            Path globalPath = bpmnDir.resolve("GlobalMission.bpmn");
+            Path globalPath = bpmnDir.resolve(activeGlobalMission);
+            if (!Files.exists(globalPath)) {
+                globalPath = bpmnDir.resolve("GlobalMission.bpmn");
+            }
             boolean globalExists = Files.exists(globalPath);
             Map<String, Object> globalInfo = new LinkedHashMap<>();
-            globalInfo.put("filename", "GlobalMission.bpmn");
+            globalInfo.put("filename", globalPath.getFileName().toString());
             globalInfo.put("exists", globalExists);
             globalInfo.put("sizeBytes", globalExists ? Files.size(globalPath) : 0);
             globalInfo.put("lastModified", globalExists ? Files.getLastModifiedTime(globalPath).toMillis() : 0);
+            globalInfo.put("isCamundaChoreography", globalPath.getFileName().toString().contains("Choreography"));
             result.put("globalMission", globalInfo);
 
             // 2. Local Robots
@@ -243,7 +248,7 @@ public class SynthesisWebServer {
             if (Files.exists(bpmnDir)) {
                 try (var stream = Files.list(bpmnDir)) {
                     stream.filter(p -> p.toString().endsWith(".bpmn"))
-                          .filter(p -> !p.getFileName().toString().equalsIgnoreCase("GlobalMission.bpmn"))
+                          .filter(p -> !p.getFileName().toString().toLowerCase(Locale.ROOT).contains("global"))
                           .sorted()
                           .forEach(p -> {
                               String fName = p.getFileName().toString();
@@ -327,6 +332,7 @@ public class SynthesisWebServer {
             int delay = 0;
             String matcherType = "HYBRID";
             String apiKeyParam = exchange.getRequestHeaders().getFirst("X-Api-Key");
+            String globalParam = null;
             if (query != null) {
                 if (query.contains("delay=")) {
                     try {
@@ -345,16 +351,23 @@ public class SynthesisWebServer {
                         apiKeyParam = java.net.URLDecoder.decode(query.split("apiKey=")[1].split("&")[0], StandardCharsets.UTF_8);
                     } catch (Exception ignored) {}
                 }
+                if (query.contains("global=")) {
+                    try {
+                        globalParam = java.net.URLDecoder.decode(query.split("global=")[1].split("&")[0], StandardCharsets.UTF_8);
+                    } catch (Exception ignored) {}
+                }
             }
             final int stepDelay = delay;
             final String selectedMatcher = matcherType;
             final String passedApiKey = apiKeyParam;
+            final String chosenGlobal = (globalParam != null && !globalParam.isBlank()) ? globalParam : activeGlobalMission;
 
             eventHistory.clear();
             broadcastEvent(SynthesisEvent.info(SynthesisEvent.Type.PIPELINE_STARTED, 0, "Avvio",
                     "Richiesta di sintesi ricevuta dall'interfaccia interattiva " 
                     + (stepDelay > 0 ? "[Modalità Demo: " + stepDelay + "ms]" : "[Modalità Turbo]")
                     + " [Matcher: " + selectedMatcher + "]"
+                    + " [Modello Globale: " + chosenGlobal + "]"
                     + (passedApiKey != null && !passedApiKey.isBlank() ? " [API Key fornita]" : "")));
 
             threadPool.submit(() -> {
@@ -373,9 +386,13 @@ public class SynthesisWebServer {
                             // Introduce un breve delay didattico tra le fasi per consentire alla commissione di seguire a video
                             if (event.getType() == SynthesisEvent.Type.STEP_STARTED ||
                                 event.getType() == SynthesisEvent.Type.SYNTACTIC_CHECK ||
+                                event.getType() == SynthesisEvent.Type.INITIAL_DEPENDENCIES_TABLE ||
                                 event.getType() == SynthesisEvent.Type.SEMANTIC_CHECK ||
                                 event.getType() == SynthesisEvent.Type.BEHAVIORAL_CHECK ||
-                                event.getType() == SynthesisEvent.Type.PLAN_CREATED) {
+                                event.getType() == SynthesisEvent.Type.REFINED_DEPENDENCIES_TABLE ||
+                                event.getType() == SynthesisEvent.Type.PLAN_CREATED ||
+                                event.getType() == SynthesisEvent.Type.WEAVING_TASK ||
+                                event.getType() == SynthesisEvent.Type.COLLABORATIVE_ROBOT_BEHAVIOR) {
                                 try {
                                     Thread.sleep(stepDelay);
                                 } catch (InterruptedException ignored) {}
@@ -383,19 +400,27 @@ public class SynthesisWebServer {
                         }
                     });
 
-                    File globalFile = bpmnDir.resolve("GlobalMission.bpmn").toFile();
+                    Path targetGlobalPath = bpmnDir.resolve(chosenGlobal);
+                    if (!Files.exists(targetGlobalPath)) {
+                        targetGlobalPath = bpmnDir.resolve(activeGlobalMission);
+                        if (!Files.exists(targetGlobalPath)) {
+                            targetGlobalPath = bpmnDir.resolve("GlobalMission.bpmn");
+                        }
+                    }
+                    File globalFile = targetGlobalPath.toFile();
+                    File adaptedGlobalFile = new it.univaq.disim.mrs.synthesis.adapter.ChoreographyAdapter().adapt(globalFile);
                     List<File> locals = new ArrayList<>();
                     if (Files.exists(bpmnDir)) {
                         try (var stream = Files.list(bpmnDir)) {
                             stream.filter(p -> p.toString().endsWith(".bpmn"))
-                                  .filter(p -> !p.getFileName().toString().equalsIgnoreCase("GlobalMission.bpmn"))
+                                  .filter(p -> !p.getFileName().toString().toLowerCase(Locale.ROOT).contains("global"))
                                   .sorted()
                                   .forEach(p -> locals.add(p.toFile()));
                         }
                     }
 
                     MissionContext context = engine.runSynthesisPipeline(
-                            locals, globalFile, ontologyFile.toFile(), semanticsFile.toFile(),
+                            locals, adaptedGlobalFile, ontologyFile.toFile(), semanticsFile.toFile(),
                             behavioralFile.toFile(), false
                     );
                     logger.info("Sintesi via Web UI completata con successo: {} interazioni.", context.getValidatedMatches().size());
@@ -444,9 +469,11 @@ public class SynthesisWebServer {
 
             filename = Paths.get(filename).getFileName().toString(); // Sanitize
             Path targetPath;
+            boolean isGlobalUpload = "global".equalsIgnoreCase(target) || filename.toLowerCase(Locale.ROOT).contains("global");
 
-            if ("global".equalsIgnoreCase(target)) {
+            if (isGlobalUpload) {
                 targetPath = bpmnDir.resolve("GlobalMission.bpmn");
+                activeGlobalMission = "GlobalMission.bpmn";
             } else if ("robot".equalsIgnoreCase(target)) {
                 String safeName = filename.endsWith(".bpmn") ? filename : filename + ".bpmn";
                 targetPath = bpmnDir.resolve(safeName);
@@ -461,6 +488,7 @@ public class SynthesisWebServer {
                 String lower = filename.toLowerCase(Locale.ROOT);
                 if (lower.contains("global")) {
                     targetPath = bpmnDir.resolve("GlobalMission.bpmn");
+                    activeGlobalMission = "GlobalMission.bpmn";
                 } else if (lower.endsWith(".bpmn")) {
                     targetPath = bpmnDir.resolve(filename);
                 } else if (lower.contains("semantic")) {
@@ -492,16 +520,18 @@ public class SynthesisWebServer {
 
             Files.createDirectories(targetPath.getParent());
             Files.write(targetPath, bytes);
-            logger.info("File utente caricato con successo: {} ({} bytes, target={})", targetPath, bytes.length, target);
+            logger.info("File utente caricato con successo: {} ({} bytes, target={}, autoStart={})", targetPath, bytes.length, target, isGlobalUpload);
 
-            sendJsonResponse(exchange, 200, Map.of(
-                    "status", "UPLOADED",
-                    "filename", filename,
-                    "targetFile", targetPath.getFileName().toString(),
-                    "targetPath", targetPath.toString(),
-                    "sizeBytes", bytes.length,
-                    "message", "File salvato correttamente come " + targetPath.getFileName()
-            ));
+            Map<String, Object> resp = new LinkedHashMap<>();
+            resp.put("status", "UPLOADED");
+            resp.put("filename", filename);
+            resp.put("targetFile", targetPath.getFileName().toString());
+            resp.put("targetPath", targetPath.toString());
+            resp.put("sizeBytes", bytes.length);
+            resp.put("isGlobal", isGlobalUpload);
+            resp.put("autoStart", isGlobalUpload);
+            resp.put("message", "File salvato correttamente come " + targetPath.getFileName());
+            sendJsonResponse(exchange, 200, resp);
         }
     }
 

@@ -28,17 +28,24 @@ public class BpmndiGenerator {
 
     public static void createEdge(BpmnModelInstance modelInstance, BpmnPlane plane, BaseElement flow,
                                   double srcX, double srcY, double trgX, double trgY) {
+        java.util.List<double[]> waypoints = new java.util.ArrayList<>();
+        waypoints.add(new double[]{srcX, srcY});
+        waypoints.add(new double[]{trgX, trgY});
+        createEdge(modelInstance, plane, flow, waypoints);
+    }
+
+    public static void createEdge(BpmnModelInstance modelInstance, BpmnPlane plane, BaseElement flow,
+                                  java.util.List<double[]> waypoints) {
         BpmnEdge edge = modelInstance.newInstance(BpmnEdge.class);
         edge.setBpmnElement(flow);
         edge.setId(flow.getId() + "_di");
 
-        Waypoint start = modelInstance.newInstance(Waypoint.class);
-        start.setX(srcX); start.setY(srcY);
-        edge.getWaypoints().add(start);
-
-        Waypoint end = modelInstance.newInstance(Waypoint.class);
-        end.setX(trgX); end.setY(trgY);
-        edge.getWaypoints().add(end);
+        for (double[] pt : waypoints) {
+            Waypoint wp = modelInstance.newInstance(Waypoint.class);
+            wp.setX(pt[0]);
+            wp.setY(pt[1]);
+            edge.getWaypoints().add(wp);
+        }
 
         plane.addChildElement(edge);
     }

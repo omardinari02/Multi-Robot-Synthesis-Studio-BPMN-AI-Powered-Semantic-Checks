@@ -1,0 +1,195 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="Def_Collaboration" targetNamespace="http://bpmn.io/schema/bpmn" exporter="Camunda Modeler" exporterVersion="5.47.0">
+  <bpmn:message id="Msg_weedPosition" name="weedPosition" />
+  <bpmn:message id="Msg_availability" name="availability" />
+  <bpmn:message id="Msg_closestTractor" name="closestTractor" />
+  <bpmn:message id="Msg_fieldReady" name="fieldReady" />
+  <bpmn:message id="Msg_digDone" name="digDone" />
+  <bpmn:message id="Msg_seedingDone" name="seedingDone" />
+  <bpmn:collaboration id="Collaboration_Globale">
+    <bpmn:participant id="Part_Global_Choreography" name="Global Choreography Flow" processRef="Global_Choreography_Process" />
+    <bpmn:participant id="Part_Drone" name="Drone" />
+    <bpmn:participant id="Part_Tagliatore" name="Tagliatore" />
+    <bpmn:participant id="Part_Scavatore" name="Scavatore" />
+    <bpmn:participant id="Part_Seminatore" name="Seminatore" />
+    <bpmn:participant id="Part_Broadcast" name="Broadcast" />
+    <bpmn:messageFlow id="MessageFlow_weedPosition" sourceRef="Part_Drone" targetRef="Part_Tagliatore" messageRef="Msg_weedPosition" />
+    <bpmn:messageFlow id="MessageFlow_availability" sourceRef="Part_Tagliatore" targetRef="Part_Drone" messageRef="Msg_availability" />
+    <bpmn:messageFlow id="MessageFlow_closestTractor" sourceRef="Part_Drone" targetRef="Part_Tagliatore" messageRef="Msg_closestTractor" />
+    <bpmn:messageFlow id="MessageFlow_fieldReady" sourceRef="Part_Tagliatore" targetRef="Part_Scavatore" messageRef="Msg_fieldReady" />
+    <bpmn:messageFlow id="MessageFlow_digDone" sourceRef="Part_Scavatore" targetRef="Part_Seminatore" messageRef="Msg_digDone" />
+    <bpmn:messageFlow id="MessageFlow_seedingDone" sourceRef="Part_Seminatore" targetRef="Part_Broadcast" messageRef="Msg_seedingDone" />
+  </bpmn:collaboration>
+  <bpmn:process id="Global_Choreography_Process" isExecutable="false">
+    <bpmn:startEvent id="StartEvent_1">
+      <bpmn:outgoing>Flow_1</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:task id="Task_weedPosition" name="Invia posizione erbacce&#10;(Drone -&gt; Tagliatore)">
+      <bpmn:incoming>Flow_1</bpmn:incoming>
+      <bpmn:outgoing>Flow_2</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:task id="Task_availability" name="Invia disponibilità&#10;(Tagliatore -&gt; Drone)">
+      <bpmn:incoming>Flow_2</bpmn:incoming>
+      <bpmn:incoming>Flow_Loop</bpmn:incoming>
+      <bpmn:outgoing>Flow_3</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:parallelGateway id="Gateway_Join_Availability" name="Raccolta di tutte le disponibilità">
+      <bpmn:incoming>Flow_3</bpmn:incoming>
+      <bpmn:outgoing>Flow_4</bpmn:outgoing>
+    </bpmn:parallelGateway>
+    <bpmn:exclusiveGateway id="Gateway_Check_Availability" name="Tagliatore disponibile?">
+      <bpmn:incoming>Flow_4</bpmn:incoming>
+      <bpmn:outgoing>Flow_YES</bpmn:outgoing>
+      <bpmn:outgoing>Flow_NO</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:intermediateCatchEvent id="Event_Timer_10s" name="Attesa 10 secondi">
+      <bpmn:incoming>Flow_NO</bpmn:incoming>
+      <bpmn:outgoing>Flow_Loop</bpmn:outgoing>
+      <bpmn:timerEventDefinition>
+        <bpmn:timeDuration>PT10S</bpmn:timeDuration>
+      </bpmn:timerEventDefinition>
+    </bpmn:intermediateCatchEvent>
+    <bpmn:task id="Task_closestTractor" name="Notifica trattore più vicino&#10;(Drone -&gt; Tagliatore)">
+      <bpmn:incoming>Flow_YES</bpmn:incoming>
+      <bpmn:outgoing>Flow_5</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:task id="Task_fieldReady" name="Segnale terreno pronto&#10;(Tagliatore -&gt; Scavatore)">
+      <bpmn:incoming>Flow_5</bpmn:incoming>
+      <bpmn:outgoing>Flow_6</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:task id="Task_digDone" name="Scavo completato&#10;(Scavatore -&gt; Seminatore)">
+      <bpmn:incoming>Flow_6</bpmn:incoming>
+      <bpmn:outgoing>Flow_7</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:task id="Task_seedingDone" name="Segnale missione completata&#10;(Seminatore -&gt; Broadcast)">
+      <bpmn:incoming>Flow_7</bpmn:incoming>
+      <bpmn:outgoing>Flow_8</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:endEvent id="EndEvent_1">
+      <bpmn:incoming>Flow_8</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:sequenceFlow id="Flow_1" sourceRef="StartEvent_1" targetRef="Task_weedPosition" />
+    <bpmn:sequenceFlow id="Flow_2" sourceRef="Task_weedPosition" targetRef="Task_availability" />
+    <bpmn:sequenceFlow id="Flow_3" sourceRef="Task_availability" targetRef="Gateway_Join_Availability" />
+    <bpmn:sequenceFlow id="Flow_4" sourceRef="Gateway_Join_Availability" targetRef="Gateway_Check_Availability" />
+    <bpmn:sequenceFlow id="Flow_Loop" sourceRef="Event_Timer_10s" targetRef="Task_availability" />
+    <bpmn:sequenceFlow id="Flow_YES" name="sì" sourceRef="Gateway_Check_Availability" targetRef="Task_closestTractor"><bpmn:conditionExpression>${availability == true}</bpmn:conditionExpression></bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_NO" name="NO" sourceRef="Gateway_Check_Availability" targetRef="Event_Timer_10s"><bpmn:conditionExpression>${availability == false}</bpmn:conditionExpression></bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_5" sourceRef="Task_closestTractor" targetRef="Task_fieldReady" />
+    <bpmn:sequenceFlow id="Flow_6" sourceRef="Task_fieldReady" targetRef="Task_digDone" />
+    <bpmn:sequenceFlow id="Flow_7" sourceRef="Task_digDone" targetRef="Task_seedingDone" />
+    <bpmn:sequenceFlow id="Flow_8" sourceRef="Task_seedingDone" targetRef="EndEvent_1" />
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="Collaboration_Globale">
+      <bpmndi:BPMNShape id="Participant_Drone_di" bpmnElement="Part_Drone" isHorizontal="true">
+        <dc:Bounds x="250" y="420" width="300" height="60" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Participant_Tagliatore_di" bpmnElement="Part_Tagliatore" isHorizontal="true">
+        <dc:Bounds x="570" y="420" width="300" height="60" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Participant_Scavatore_di" bpmnElement="Part_Scavatore" isHorizontal="true">
+        <dc:Bounds x="890" y="420" width="300" height="60" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Participant_Seminatore_di" bpmnElement="Part_Seminatore" isHorizontal="true">
+        <dc:Bounds x="250" y="500" width="300" height="60" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Participant_Broadcast_di" bpmnElement="Part_Broadcast" isHorizontal="true">
+        <dc:Bounds x="570" y="500" width="300" height="60" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Participant_Global_di" bpmnElement="Part_Global_Choreography" isHorizontal="true">
+        <dc:Bounds x="160" y="80" width="1350" height="300" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="StartEvent_1_di" bpmnElement="StartEvent_1">
+        <dc:Bounds x="210" y="182" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_weedPosition_di" bpmnElement="Task_weedPosition">
+        <dc:Bounds x="290" y="160" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_availability_di" bpmnElement="Task_availability">
+        <dc:Bounds x="430" y="160" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gateway_Join_Availability_di" bpmnElement="Gateway_Join_Availability" isMarkerVisible="true">
+        <dc:Bounds x="570" y="175" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gateway_Check_Availability_di" bpmnElement="Gateway_Check_Availability" isMarkerVisible="true">
+        <dc:Bounds x="660" y="175" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="656" y="140" width="59" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Event_Timer_10s_di" bpmnElement="Event_Timer_10s">
+        <dc:Bounds x="667" y="272" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="642" y="315" width="88" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_closestTractor_di" bpmnElement="Task_closestTractor">
+        <dc:Bounds x="770" y="160" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_fieldReady_di" bpmnElement="Task_fieldReady">
+        <dc:Bounds x="910" y="160" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_digDone_di" bpmnElement="Task_digDone">
+        <dc:Bounds x="1050" y="160" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_seedingDone_di" bpmnElement="Task_seedingDone">
+        <dc:Bounds x="1190" y="160" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="EndEvent_1_di" bpmnElement="EndEvent_1">
+        <dc:Bounds x="1340" y="182" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="Flow_1_di" bpmnElement="Flow_1">
+        <di:waypoint x="246" y="200" />
+        <di:waypoint x="290" y="200" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_2_di" bpmnElement="Flow_2">
+        <di:waypoint x="390" y="200" />
+        <di:waypoint x="430" y="200" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_3_di" bpmnElement="Flow_3">
+        <di:waypoint x="530" y="200" />
+        <di:waypoint x="570" y="200" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_4_di" bpmnElement="Flow_4">
+        <di:waypoint x="620" y="200" />
+        <di:waypoint x="660" y="200" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_Loop_di" bpmnElement="Flow_Loop">
+        <di:waypoint x="685" y="290" />
+        <di:waypoint x="480" y="290" />
+        <di:waypoint x="480" y="240" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_YES_di" bpmnElement="Flow_YES">
+        <di:waypoint x="710" y="200" />
+        <di:waypoint x="770" y="200" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="736" y="182" width="9" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_NO_di" bpmnElement="Flow_NO">
+        <di:waypoint x="685" y="225" />
+        <di:waypoint x="685" y="272" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="692" y="246" width="17" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_5_di" bpmnElement="Flow_5">
+        <di:waypoint x="870" y="200" />
+        <di:waypoint x="910" y="200" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_6_di" bpmnElement="Flow_6">
+        <di:waypoint x="1010" y="200" />
+        <di:waypoint x="1050" y="200" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_7_di" bpmnElement="Flow_7">
+        <di:waypoint x="1150" y="200" />
+        <di:waypoint x="1190" y="200" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_8_di" bpmnElement="Flow_8">
+        <di:waypoint x="1290" y="200" />
+        <di:waypoint x="1340" y="200" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

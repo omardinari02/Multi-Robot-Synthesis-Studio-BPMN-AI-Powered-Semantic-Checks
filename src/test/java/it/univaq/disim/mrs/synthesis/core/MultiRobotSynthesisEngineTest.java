@@ -33,10 +33,11 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class MultiRobotSynthesisEngineTest {
     private static final File BPMN_DIR = new File("src/main/resources/bpmn");
+    private static final File THESIS_BENCHMARK_GLOBAL = new File("src/test/resources/thesis-benchmark/GlobalMission.bpmn");
 
     @Test
     void suppliedGlobalChoreographyPassesStructuralCoherenceCheck() {
-        BpmnModelInstance global = Bpmn.readModelFromFile(new File(BPMN_DIR, "GlobalMission.bpmn"));
+        BpmnModelInstance global = Bpmn.readModelFromFile(THESIS_BENCHMARK_GLOBAL);
         assertTrue(new GlobalChoreographyAnalyzer().validateStructuralCoherence(global).isEmpty(),
                 "The case-study choreography should have valid endpoints, reachable flow nodes, and a route to an end event.");
     }
@@ -56,7 +57,7 @@ class MultiRobotSynthesisEngineTest {
 
     @Test
     void globalGatewayRejectsGuardVariableWithoutDeclaredMessageSource() {
-        BpmnModelInstance global = Bpmn.readModelFromFile(new File(BPMN_DIR, "GlobalMission.bpmn"));
+        BpmnModelInstance global = Bpmn.readModelFromFile(THESIS_BENCHMARK_GLOBAL);
         ((SequenceFlow) global.getModelElementById("Flow_YES")).getConditionExpression().setTextContent("${ghostFlag == true}");
         ((SequenceFlow) global.getModelElementById("Flow_NO")).getConditionExpression().setTextContent("${ghostFlag == false}");
 
@@ -67,7 +68,7 @@ class MultiRobotSynthesisEngineTest {
 
     @Test
     void globalGatewayRejectsGuardVariableWhoseMessageHasNoMessageFlow() {
-        BpmnModelInstance global = Bpmn.readModelFromFile(new File(BPMN_DIR, "GlobalMission.bpmn"));
+        BpmnModelInstance global = Bpmn.readModelFromFile(THESIS_BENCHMARK_GLOBAL);
         org.camunda.bpm.model.bpmn.instance.MessageFlow availabilityFlow =
                 global.getModelElementsByType(org.camunda.bpm.model.bpmn.instance.MessageFlow.class).stream()
                         .filter(flow -> flow.getMessage() != null
@@ -131,7 +132,7 @@ class MultiRobotSynthesisEngineTest {
 
     @Test
     void availabilityRetryUsesTheThesisCollectionGatewayAndReturnsAfterTimer() {
-        BpmnModelInstance global = Bpmn.readModelFromFile(new File(BPMN_DIR, "GlobalMission.bpmn"));
+        BpmnModelInstance global = Bpmn.readModelFromFile(THESIS_BENCHMARK_GLOBAL);
         org.camunda.bpm.model.bpmn.instance.ParallelGateway collection =
                 (org.camunda.bpm.model.bpmn.instance.ParallelGateway) global.getModelElementById("Gateway_Join_Availability");
         assertNotNull(collection, "The global choreography must represent availability collection.");
@@ -192,7 +193,7 @@ class MultiRobotSynthesisEngineTest {
         locals.add(new File(BPMN_DIR, "Scavatore.bpmn"));
         locals.add(new File(BPMN_DIR, "Seminatore.bpmn"));
 
-        MissionContext context = engine.runSynthesisPipeline(locals, new File(BPMN_DIR, "GlobalMission.bpmn"),
+        MissionContext context = engine.runSynthesisPipeline(locals, THESIS_BENCHMARK_GLOBAL,
                 new File("src/main/resources/taxonomy.json"), new File("src/main/resources/semantics.json"), false);
         assertEquals(6, context.getValidatedMatches().size(), "All six messages in the basic case study should be resolved.");
         BpmnModelInstance enhancedDrone = context.getRobotModel("Drone.bpmn");
@@ -343,7 +344,7 @@ class MultiRobotSynthesisEngineTest {
                 new File(BPMN_DIR, "Scavatore.bpmn"),
                 new File(BPMN_DIR, "Seminatore.bpmn"));
         MissionContext context = new MultiRobotSynthesisEngine().runSynthesisPipeline(
-                locals, new File(BPMN_DIR, "GlobalMission.bpmn"),
+                locals, THESIS_BENCHMARK_GLOBAL,
                 new File("src/main/resources/taxonomy.json"), alteredSemantics, false);
         // Removing fieldReady also removes the state fact required by the downstream digging/seeding chain.
         // A behavioral checker must not keep those dependent interactions as proven matches.
@@ -413,7 +414,7 @@ class MultiRobotSynthesisEngineTest {
     @Test
     void plannerDoesNotAssumeParallelismWhenGlobalOrderAndGatewayEvidenceAreMissing() {
         MissionContext context = new MissionContext();
-        context.setGlobalChoreography(Bpmn.readModelFromFile(new File(BPMN_DIR, "GlobalMission.bpmn")));
+        context.setGlobalChoreography(Bpmn.readModelFromFile(THESIS_BENCHMARK_GLOBAL));
         context.getValidatedMatches().add(new InteractionMatch("Drone", "Task_Coordinate", "Tagliatore",
                 "Task_ReceiveMap", "messageNotInChoreographyA"));
         context.getValidatedMatches().add(new InteractionMatch("Drone", "Task_Coordinate", "Scavatore",
@@ -626,7 +627,7 @@ class MultiRobotSynthesisEngineTest {
         // 1. Baseline: execution using domain ontology semantic concepts
         MultiRobotSynthesisEngine baselineEngine = new MultiRobotSynthesisEngine();
         MissionContext baselineContext = baselineEngine.runSynthesisPipeline(locals,
-                new File(BPMN_DIR, "GlobalMission.bpmn"),
+                THESIS_BENCHMARK_GLOBAL,
                 new File("src/main/resources/taxonomy.json"),
                 new File("src/main/resources/semantics.json"), false);
         assertEquals(6, baselineContext.getValidatedMatches().size());
@@ -656,7 +657,7 @@ class MultiRobotSynthesisEngineTest {
 
             MultiRobotSynthesisEngine llmEngine = new MultiRobotSynthesisEngine(llmMatcher);
             MissionContext llmContext = llmEngine.runSynthesisPipeline(locals,
-                    new File(BPMN_DIR, "GlobalMission.bpmn"),
+                    THESIS_BENCHMARK_GLOBAL,
                     new File("src/main/resources/taxonomy.json"),
                     noConceptsFile, false);
 

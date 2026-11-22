@@ -114,17 +114,16 @@ public class MultiRobotSynthesisEngine {
         clearPreviousOutputs();
 
         MissionContext context = new MissionContext();
-        context.setGlobalChoreography(repository.loadModel(globalChoreoFile));
+        File effectiveGlobalChoreo = new it.univaq.disim.mrs.synthesis.adapter.ChoreographyAdapter().adapt(globalChoreoFile);
+        context.setGlobalChoreography(repository.loadModel(effectiveGlobalChoreo));
         ontologyManager.loadOntology(ontologyFile);
         List<DataNode> specifications = inputManager.loadSemanticSpecifications(semanticsFile);
         Map<String, String> initialBehavioralState = loadInitialBehavioralState(behavioralStateFile);
 
-        emit(SynthesisEvent.info(SynthesisEvent.Type.PIPELINE_STARTED, 0, "Inizializzazione",
-                "Avvio sintesi multi-robot con " + localProcessesFiles.size() + " modelli robot locali."));
+        emit(SynthesisEvent.info(SynthesisEvent.Type.PIPELINE_STARTED, 0, "Figura 5.1 - Input del Metodo",
+                "Avvio sintesi multi-robot con " + localProcessesFiles.size() + " modelli robot locali secondo Figura 5.1 della Tesi."));
 
-        logger.info("[Step 1] Analyzing local robot processes and I/O metadata.");
-        emit(SynthesisEvent.info(SynthesisEvent.Type.STEP_STARTED, 1, "Analisi Processi Locali",
-                "Analisi dei contratti I/O (precondizioni ed effetti) per ciascun robot."));
+        // Comportamento locale dei robot (Diagrammi di processo BPMN)
         for (File robotFile : localProcessesFiles) {
             String robotName = cleanRobotName(robotFile.getName());
             if (context.getRobotModel(robotFile.getName()) != null) {
@@ -134,14 +133,12 @@ public class MultiRobotSynthesisEngine {
             List<RobotTaskMetadata> metadata = localAnalyzer.analyzeLocalModels(robotName,
                     context.getRobotModel(robotFile.getName()));
             context.getExtractedMetadata().addAll(metadata);
-            emit(new SynthesisEvent(SynthesisEvent.Type.ROBOT_LOADED, 1, "Analisi Processi Locali",
-                    "Modello robot '" + robotName + "' caricato con " + metadata.size() + " task.",
+            emit(new SynthesisEvent(SynthesisEvent.Type.ROBOT_LOADED, 0, "Figura 5.1 - Input del Metodo",
+                    "Comportamento locale caricato: Robot '" + robotName + "' (" + metadata.size() + " task interni).",
                     robotName, null, null, true, "File: " + robotFile.getName() + " (" + metadata.size() + " task)"));
         }
 
-        logger.info("[Step 2] Reading message flows from the global choreography.");
-        emit(SynthesisEvent.info(SynthesisEvent.Type.STEP_STARTED, 2, "Coreografia Globale",
-                "Estrazione dei canali di interazione dalla coreografia globale."));
+        // Specifica della missione (Choreography diagram BPMN)
         List<String> globalCoherenceIssues = globalAnalyzer.validateStructuralCoherence(context.getGlobalChoreography());
         for (String issue : globalCoherenceIssues) addDiagnostic(context, "Global choreography coherence check failed: " + issue);
         List<MessageFlow> globalMessages = globalAnalyzer.extractGlobalMessages(context.getGlobalChoreography());
@@ -152,16 +149,59 @@ public class MultiRobotSynthesisEngine {
             String mName = flow.getMessage() != null ? flow.getMessage().getName() : flow.getName();
             String sRobot = cleanRobotName(globalAnalyzer.getParticipantName(flow.getSource()));
             String tRobot = cleanRobotName(globalAnalyzer.getParticipantName(flow.getTarget()));
-            emit(new SynthesisEvent(SynthesisEvent.Type.GLOBAL_MESSAGE_DISCOVERED, 2, "Coreografia Globale",
-                    "Rilevato messaggio globale: " + mName, sRobot, tRobot, mName, true, "Tratta: " + sRobot + " ➔ " + tRobot));
+            emit(new SynthesisEvent(SynthesisEvent.Type.GLOBAL_MESSAGE_DISCOVERED, 0, "Figura 5.1 - Input del Metodo",
+                    "Specifica della missione: rilevata interazione '" + mName + "' (" + sRobot + " ➔ " + tRobot + ")", sRobot, tRobot, mName, true, "Tratta: " + sRobot + " ➔ " + tRobot));
         }
 
-        logger.info("[Step 3] Validating producer, consumer, type and semantic compatibility.");
-        emit(SynthesisEvent.info(SynthesisEvent.Type.STEP_STARTED, 3, "Verifica Compatibilità",
-                "Verifica formale delle compatibilità sintattica, semantica e comportamentale."));
+        // Ontologia globale (OWL) e Casi di prova (Behavioral State)
+        emit(new SynthesisEvent(SynthesisEvent.Type.INPUT_LOADED, 0, "Figura 5.1 - Input del Metodo",
+                "Ontologia globale e Casi di prova (Contratti operativi) caricati.", null, null, null, true,
+                "Ontologia: " + ontologyFile.getName() + " | Casi di Prova: " + behavioralStateFile.getName()));
+
+        // =========================================================================
+        // STEP 1: ANALISI DATI DI SCAMBIO I/O (Figura 5.1 - Step 1)
+        // =========================================================================
+        logger.info("[Step 1] Analyzing I/O data exchanges (syntactic & structural compatibility).");
+        emit(SynthesisEvent.info(SynthesisEvent.Type.STEP_STARTED, 1, "STEP 1: Analisi Dati Scambio I/O",
+                "Analisi delle operazioni interne e verifica compatibilità sintattica/strutturale I/O tra task locali e messaggi della coreografia globale."));
+
+        List<SyntacticCandidate> syntacticCandidates = new ArrayList<>();
         for (MessageFlow flow : globalMessages) {
-            resolveMessageFlow(context, flow, specifications, initialBehavioralState);
+            SyntacticCandidate candidate = checkSyntacticCompatibility(context, flow, specifications);
+            if (candidate != null) {
+                syntacticCandidates.add(candidate);
+                emit(SynthesisEvent.check(SynthesisEvent.Type.SYNTACTIC_CHECK, 1, "STEP 1: Analisi Dati Scambio I/O", candidate.messageName,
+                        candidate.sourceRobot, candidate.targetRobot, true,
+                        "Compatibilità sintattica/strutturale verificata: '" + candidate.producer.getProducedDataType() + "' ➔ '" + candidate.expectedConsumerType + "'"));
+            }
         }
+
+        // Artefatto Intermedio 1 della Figura 5.1: Set di dipendenze dei dati iniziali (Tabella corrispondenze sintattiche)
+        String synSummary = syntacticCandidates.stream()
+                .map(c -> c.messageName + " (" + c.sourceRobot + " ➔ " + c.targetRobot + ")")
+                .collect(Collectors.joining(", "));
+        emit(new SynthesisEvent(SynthesisEvent.Type.INITIAL_DEPENDENCIES_TABLE, 1, "STEP 1: Analisi Dati Scambio I/O",
+                "Artefatto generato: Set di Dipendenze dei Dati Iniziali (" + syntacticCandidates.size() + " corrispondenze sintatticamente corrette).",
+                null, null, null, true, "Tabella Corrispondenze Sintattiche: " + synSummary));
+
+        // =========================================================================
+        // STEP 2: ANALISI DELLA COMPATIBILITÀ SEMANTICA (Figura 5.1 - Step 2)
+        // =========================================================================
+        logger.info("[Step 2] Analyzing semantic compatibility & behavioral testing.");
+        emit(SynthesisEvent.info(SynthesisEvent.Type.STEP_STARTED, 2, "STEP 2: Compatibilità Semantica & Testing",
+                "Raffinamento delle corrispondenze tramite Ontologia Globale (OWL / subsumption) e Casi di Prova (LTS / contratti)."));
+
+        for (SyntacticCandidate candidate : syntacticCandidates) {
+            resolveSemanticAndBehavioral(context, candidate, initialBehavioralState);
+        }
+
+        // Artefatto Intermedio 2 della Figura 5.1: Set di dipendenze dei dati raffinato (Tabella corrispondenze semantiche)
+        String semSummary = context.getValidatedMatches().stream()
+                .map(m -> m.getMessageName() + " (" + m.getSenderRobot() + " ➔ " + m.getReceiverRobot() + ")")
+                .collect(Collectors.joining(", "));
+        emit(new SynthesisEvent(SynthesisEvent.Type.REFINED_DEPENDENCIES_TABLE, 2, "STEP 2: Compatibilità Semantica & Testing",
+                "Artefatto generato: Set di Dipendenze dei Dati Raffinato (" + context.getValidatedMatches().size() + " corrispondenze semanticamente validate).",
+                null, null, null, true, "Tabella Corrispondenze Semantiche: " + semSummary));
 
         if (failOnUnresolved && !context.getDiagnostics().isEmpty()) {
             throw new IllegalStateException("Synthesis stopped because unresolved interactions were found: "
@@ -172,22 +212,27 @@ public class MultiRobotSynthesisEngine {
                     + "and the local BPMN input/output metadata. Diagnostics: " + String.join(" | ", context.getDiagnostics()));
         }
 
-        logger.info("[Step 4/5] Planning {} validated interactions.", context.getValidatedMatches().size());
-        emit(SynthesisEvent.info(SynthesisEvent.Type.STEP_STARTED, 4, "Pianificazione Interazioni",
-                "Pianificazione dei canali per " + context.getValidatedMatches().size() + " interazioni validate."));
+        // =========================================================================
+        // STEP 3: SINTESI DELLA MISSIONE (Figura 5.1 - Step 3)
+        // =========================================================================
+        logger.info("[Step 3] Mission synthesis: interaction planning & BPMN weaving.");
+        emit(SynthesisEvent.info(SynthesisEvent.Type.STEP_STARTED, 3, "STEP 3: Sintesi della Missione",
+                "Disambiguazione relazioni 1->N, pianificazione delle interazioni e tessitura BPMN (Weaving)."));
+
         List<InteractionPlan> plans = planner.buildInteractionPlans(context);
         for (InteractionPlan plan : plans) {
             for (InteractionMatch match : plan.getReceiverMatches()) {
-                emit(new SynthesisEvent(SynthesisEvent.Type.PLAN_CREATED, 4, "Pianificazione Interazioni",
-                        "Piano per messaggio '" + match.getMessageName() + "'", match.getSenderRobot(), match.getReceiverRobot(),
+                emit(new SynthesisEvent(SynthesisEvent.Type.PLAN_CREATED, 3, "STEP 3: Sintesi della Missione",
+                        "Piano interazione per '" + match.getMessageName() + "' (" + match.getSenderRobot() + " ➔ " + match.getReceiverRobot() + ")",
+                        match.getSenderRobot(), match.getReceiverRobot(),
                         match.getMessageName(), true, "Produttore: " + match.getSenderTaskId() + " ➔ Consumatore: " + match.getReceiverTaskId()));
             }
         }
 
-        logger.info("[Step 6] Weaving communication tasks into local BPMN models.");
-        emit(SynthesisEvent.info(SynthesisEvent.Type.STEP_STARTED, 5, "Tessitura BPMN (Weaving)",
-                "Inserimento automatico dei SendTask e ReceiveTask nei modelli BPMN."));
         weaver.weaveInteractions(context, plans);
+        emit(new SynthesisEvent(SynthesisEvent.Type.WEAVING_TASK, 3, "STEP 3: Sintesi della Missione",
+                "Tessitura completata: SendTask e ReceiveTask inseriti nei modelli BPMN dei robot.",
+                null, null, null, true, "Piani tessuti: " + plans.size()));
 
         logger.info("[Output] Writing enhanced BPMN and Draw.io diagrams.");
         context.getAllRobotModels().forEach((fileName, model) ->
@@ -195,8 +240,13 @@ public class MultiRobotSynthesisEngine {
         repository.saveUnifiedDiagram(context);
         drawioExporter.exportAllToDrawio(context, OUTPUT_DIRECTORY.toString() + File.separator);
 
-        emit(new SynthesisEvent(SynthesisEvent.Type.PIPELINE_COMPLETED, 6, "Completamento",
-                "Sintesi multi-robot completata con successo!", null, null, null, true,
+        // Artefatto Finale della Figura 5.1: Comportamento collaborativo dei robot
+        emit(new SynthesisEvent(SynthesisEvent.Type.COLLABORATIVE_ROBOT_BEHAVIOR, 3, "STEP 3: Sintesi della Missione",
+                "Artefatto finale generato: Comportamento Collaborativo dei Robot (" + context.getAllRobotModels().size() + " modelli BPMN Enhanced + Unified Collaboration Diagram).",
+                null, null, null, true, "Modelli BPMN: " + String.join(", ", context.getAllRobotModels().keySet())));
+
+        emit(new SynthesisEvent(SynthesisEvent.Type.PIPELINE_COMPLETED, 3, "Completamento",
+                "Sintesi multi-robot completata con successo secondo la Figura 5.1!", null, null, null, true,
                 context.getValidatedMatches().size() + " interazioni validate; " + context.getDiagnostics().size() + " diagnostiche."));
 
         if (!context.getDiagnostics().isEmpty()) {
@@ -212,35 +262,66 @@ public class MultiRobotSynthesisEngine {
         return context;
     }
 
-    private void resolveMessageFlow(MissionContext context, MessageFlow flow, List<DataNode> specs,
-                                    Map<String, String> initialBehavioralState) {
+    private static class SyntacticCandidate {
+        final MessageFlow flow;
+        final String messageName;
+        final String sourceRobot;
+        final String targetRobot;
+        final DataNode spec;
+        final RobotTaskMetadata producer;
+        final RobotTaskMetadata consumer;
+        final String expectedConsumerType;
+        final boolean strongSyntax;
+        final boolean isBroadcast;
+
+        SyntacticCandidate(MessageFlow flow, String messageName, String sourceRobot, String targetRobot,
+                           DataNode spec, RobotTaskMetadata producer, RobotTaskMetadata consumer,
+                           String expectedConsumerType, boolean strongSyntax, boolean isBroadcast) {
+            this.flow = flow;
+            this.messageName = messageName;
+            this.sourceRobot = sourceRobot;
+            this.targetRobot = targetRobot;
+            this.spec = spec;
+            this.producer = producer;
+            this.consumer = consumer;
+            this.expectedConsumerType = expectedConsumerType;
+            this.strongSyntax = strongSyntax;
+            this.isBroadcast = isBroadcast;
+        }
+    }
+
+    /**
+     * STEP 1 (Figura 5.1): Analisi Dati di Scambio I/O.
+     * Verifica la compatibilità sintattica e strutturale tra operazioni interne dei robot e messaggi globali.
+     */
+    private SyntacticCandidate checkSyntacticCompatibility(MissionContext context, MessageFlow flow, List<DataNode> specs) {
         String messageName = flow.getMessage() != null ? flow.getMessage().getName() : flow.getName();
         if (blank(messageName)) {
             addDiagnostic(context, "MessageFlow " + flow.getId() + " has no message name.");
-            return;
+            return null;
         }
         String sourceRobot = cleanRobotName(globalAnalyzer.getParticipantName(flow.getSource()));
         String targetRobot = cleanRobotName(globalAnalyzer.getParticipantName(flow.getTarget()));
         DataNode spec = findUserSpec(specs, messageName);
         if (spec == null) {
             addDiagnostic(context, "No semantic specification exists for message '" + messageName + "'.");
-            return;
+            return null;
         }
         if (!same(sourceRobot, spec.getRobotId())) {
             addDiagnostic(context, "Message '" + messageName + "' source participant '" + sourceRobot
                     + "' disagrees with producer robot '" + spec.getRobotId() + "' in semantics.json.");
-            return;
+            return null;
         }
 
         RobotTaskMetadata producer = findTask(context.getExtractedMetadata(), sourceRobot, spec.getTaskId());
         if (producer == null) {
             addDiagnostic(context, "Producer task '" + spec.getTaskId() + "' for message '" + messageName
                     + "' was not found in local process '" + sourceRobot + "'.");
-            return;
+            return null;
         }
         if (blank(producer.getProducedDataType())) {
             addDiagnostic(context, "Producer task '" + spec.getTaskId() + "' does not declare producedData for '" + messageName + "'.");
-            return;
+            return null;
         }
         boolean strongSyntax = "STRONG".equalsIgnoreCase(spec.getSyntacticCompatibility());
         boolean producerTypeCompatible = syntacticChecker.isTypeCompatible(
@@ -249,12 +330,10 @@ public class MultiRobotSynthesisEngine {
             addDiagnostic(context, "Producer type '" + producer.getProducedDataType() + "' is not "
                     + (strongSyntax ? "strongly" : "weakly") + " syntactically compatible with declared message type '"
                     + spec.getDataType() + "' for '" + messageName + "'.");
-            return;
+            return null;
         }
 
         String expectedConsumerType = blank(spec.getReceiverDataType()) ? spec.getDataType() : spec.getReceiverDataType();
-        emit(SynthesisEvent.check(SynthesisEvent.Type.SYNTACTIC_CHECK, 3, "Verifica Sintattica", messageName,
-                sourceRobot, targetRobot, true, "Compatibilità tipo di dato OK: '" + producer.getProducedDataType() + "' ➔ '" + expectedConsumerType + "'"));
         Collection<String> producedFields = spec.getProducedFields();
         Collection<String> receiverFields = spec.getReceiverFields();
         if ((producedFields == null || producedFields.isEmpty()) && (receiverFields == null || receiverFields.isEmpty())) {
@@ -268,8 +347,36 @@ public class MultiRobotSynthesisEngine {
         if (!syntacticChecker.isStructurallyCompatible(producedFields, receiverFields)) {
             addDiagnostic(context, "Structural compatibility rejected for message '" + messageName
                     + "': produced fields do not contain all receiver-required fields with matching declarations.");
-            return;
+            return null;
         }
+
+        boolean isBroadcast = "broadcast".equalsIgnoreCase(targetRobot);
+        RobotTaskMetadata consumer = null;
+        if (!isBroadcast) {
+            consumer = findConsumer(context.getExtractedMetadata(), targetRobot,
+                    spec.getReceiverTaskId(), producer.getProducedDataType(), expectedConsumerType, strongSyntax);
+            if (consumer == null) {
+                addDiagnostic(context, "No compatible consumer task found in '" + targetRobot + "' for message '" + messageName
+                        + "' (produced type=" + producer.getProducedDataType() + ", expected input=" + expectedConsumerType + ").");
+                return null;
+            }
+        }
+
+        return new SyntacticCandidate(flow, messageName, sourceRobot, targetRobot, spec, producer, consumer,
+                expectedConsumerType, strongSyntax, isBroadcast);
+    }
+
+    /**
+     * STEP 2 (Figura 5.1): Analisi della Compatibilità Semantica & Testing Comportamentale.
+     * Raffina le corrispondenze sintattiche mediante Ontologia Globale (OWL / subsumption) e Casi di Prova (LTS).
+     */
+    private void resolveSemanticAndBehavioral(MissionContext context, SyntacticCandidate candidate,
+                                             Map<String, String> initialBehavioralState) {
+        String messageName = candidate.messageName;
+        String sourceRobot = candidate.sourceRobot;
+        String targetRobot = candidate.targetRobot;
+        DataNode spec = candidate.spec;
+        RobotTaskMetadata producer = candidate.producer;
 
         BpmnModelInstance producerModel = findRobotModel(context, sourceRobot);
         if (producerModel == null) {
@@ -288,7 +395,7 @@ public class MultiRobotSynthesisEngine {
         }
         Map<String, String> stateBeforeInteraction = stateWithPriorInteractionEffects(context, initialBehavioralState);
 
-        if ("broadcast".equalsIgnoreCase(targetRobot)) {
+        if (candidate.isBroadcast) {
             boolean semanticMatch = semanticMatcher.isSemanticMatch(
                     producer.getProducedDataType(), spec.getSemanticDescription(),
                     producer.getProducedDataType(), spec.getReceiverSemanticDescription(),
@@ -301,8 +408,8 @@ public class MultiRobotSynthesisEngine {
             if (broadcastExpl == null || broadcastExpl.isBlank()) {
                 broadcastExpl = "Match semantico validato: concetti '" + spec.getSemanticConcept() + "' e '" + spec.getReceiverSemanticConcept() + "'";
             }
-            String broadcastTitle = buildSemanticPhaseTitle(semanticMatcher);
-            emit(SynthesisEvent.check(SynthesisEvent.Type.SEMANTIC_CHECK, 3, broadcastTitle, messageName,
+            String broadcastTitle = "STEP 2: " + buildSemanticPhaseTitle(semanticMatcher);
+            emit(SynthesisEvent.check(SynthesisEvent.Type.SEMANTIC_CHECK, 2, broadcastTitle, messageName,
                     sourceRobot, targetRobot, true, broadcastExpl));
 
             boolean broadcastHasContracts = producerPrefixes.getPaths().stream().anyMatch(path -> path.stream()
@@ -325,13 +432,7 @@ public class MultiRobotSynthesisEngine {
             return;
         }
 
-        RobotTaskMetadata consumer = findConsumer(context.getExtractedMetadata(), targetRobot,
-                spec.getReceiverTaskId(), producer.getProducedDataType(), expectedConsumerType, strongSyntax);
-        if (consumer == null) {
-            addDiagnostic(context, "No compatible consumer task found in '" + targetRobot + "' for message '" + messageName
-                    + "' (produced type=" + producer.getProducedDataType() + ", expected input=" + expectedConsumerType + ").");
-            return;
-        }
+        RobotTaskMetadata consumer = candidate.consumer;
         BpmnModelInstance consumerModel = findRobotModel(context, targetRobot);
         if (consumerModel == null) {
             addDiagnostic(context, "Behavioral compatibility check is UNRESOLVED for message '" + messageName
@@ -384,11 +485,11 @@ public class MultiRobotSynthesisEngine {
                     + "': explicit contracts are missing from the producer prefix or receiver continuation. "
                     + "Structural checks passed, but §5.6 behavioral compatibility has not been proven.");
         }
-        emit(SynthesisEvent.check(SynthesisEvent.Type.BEHAVIORAL_CHECK, 3, "Verifica Comportamentale", messageName,
+        emit(SynthesisEvent.check(SynthesisEvent.Type.BEHAVIORAL_CHECK, 2, "STEP 2: Testing Comportamentale (Casi di Prova)", messageName,
                 sourceRobot, targetRobot, true, "Verifica prefissi/continuazioni e contratti LTS completata (deadlock-free)"));
 
         if (!semanticMatcher.isSemanticMatch(producer.getProducedDataType(), spec.getSemanticDescription(),
-                expectedConsumerType, spec.getReceiverSemanticDescription(), spec.getSemanticConcept(), spec.getReceiverSemanticConcept())) {
+                candidate.expectedConsumerType, spec.getReceiverSemanticDescription(), spec.getSemanticConcept(), spec.getReceiverSemanticConcept())) {
             addDiagnostic(context, "Semantic compatibility rejected for message '" + messageName + "'.");
             return;
         }
@@ -397,9 +498,9 @@ public class MultiRobotSynthesisEngine {
         if (explanation == null || explanation.isBlank()) {
             explanation = "Match semantico validato: concetti '" + spec.getSemanticConcept() + "' e '" + spec.getReceiverSemanticConcept() + "'";
         }
-        String phaseTitle = buildSemanticPhaseTitle(semanticMatcher);
+        String phaseTitle = "STEP 2: " + buildSemanticPhaseTitle(semanticMatcher);
 
-        emit(SynthesisEvent.check(SynthesisEvent.Type.SEMANTIC_CHECK, 3, phaseTitle, messageName,
+        emit(SynthesisEvent.check(SynthesisEvent.Type.SEMANTIC_CHECK, 2, phaseTitle, messageName,
                 sourceRobot, targetRobot, true, explanation));
 
         context.getValidatedMatches().add(new InteractionMatch(sourceRobot, producer.getTaskId(), targetRobot,

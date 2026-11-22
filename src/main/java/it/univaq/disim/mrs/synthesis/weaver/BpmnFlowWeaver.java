@@ -142,10 +142,10 @@ public class BpmnFlowWeaver {
         double consumerX = layout.getX(local, availabilityConsumer);
         double consumerY = layout.getY(local, availabilityConsumer);
         double targetX = layout.getX(local, successTarget);
-        double gatewayX = consumerX + 230.0;
+        double gatewayX = consumerX + 200.0;
         double gatewayY = consumerY;
-        double requiredTargetX = consumerX + 500.0;
-        double shift = Math.max(180.0, requiredTargetX - targetX);
+        double requiredTargetX = gatewayX + 130.0;
+        double shift = Math.max(80.0, requiredTargetX - targetX);
         layout.shiftRightRecursive(local, successTarget, shift);
         layout.removeFlowAndDI(local, oldFlow);
 
@@ -153,7 +153,7 @@ public class BpmnFlowWeaver {
         // it AFTER the local availability check and before the exclusive decision.
         ParallelGateway localJoin = layout.createGateway(local, ParallelGateway.class,
                 "Raccolta di tutte le disponibilità");
-        layout.placeShape(local, plane, localJoin, consumerX + 125.0, gatewayY);
+        layout.placeShape(local, plane, localJoin, consumerX + 115.0, gatewayY);
         ExclusiveGateway localGateway = layout.createGateway(local, ExclusiveGateway.class,
                 globalGateway.getName() == null ? "Disponibilità confermata?" : globalGateway.getName());
         layout.placeShape(local, plane, localGateway, gatewayX, gatewayY);
@@ -200,7 +200,8 @@ public class BpmnFlowWeaver {
         for (org.camunda.bpm.model.bpmn.instance.EventDefinition definition : new ArrayList<>(timer.getEventDefinitions())) {
             timer.removeChildElement(definition);
         }
-        layout.placeShape(model, plane, timer, x + 80.0, y + 110.0);
+        // Center the 36x36 timer directly beneath the 50x50 exclusive gateway (x + (50-36)/2 = x + 7)
+        layout.placeShape(model, plane, timer, x + 7.0, y + 110.0);
         return timer;
     }
 
@@ -372,8 +373,8 @@ public class BpmnFlowWeaver {
             FlowNode predecessor = oldFlow.getSource();
             if (predecessor == null) fail(context, "Consumer flow into '" + entry.getKey() + "' has no source.");
             List<InteractionMatch> group = entry.getValue();
-            double predecessorX = layout.getX(model, predecessor);
-            double predecessorY = layout.getY(model, predecessor);
+            double consumerX = layout.getX(model, consumer);
+            double consumerY = layout.getY(model, consumer);
             layout.shiftRightRecursive(model, consumer, group.size() * 150.0);
             layout.removeFlowAndDI(model, oldFlow);
 
@@ -383,7 +384,7 @@ public class BpmnFlowWeaver {
                 ReceiveTask receive = layout.createTask(model, ReceiveTask.class, "Ricevi: " + match.getMessageName());
                 match.setGeneratedReceiveTaskId(receive.getId());
                 bindMessage(model, receive, match.getMessageName());
-                layout.placeShape(model, plane, receive, predecessorX + (i + 1) * 150.0, predecessorY);
+                layout.placeShape(model, plane, receive, consumerX + (i * 150.0), consumerY);
                 layout.connect(model, plane, previous, receive, "");
                 previous = receive;
             }

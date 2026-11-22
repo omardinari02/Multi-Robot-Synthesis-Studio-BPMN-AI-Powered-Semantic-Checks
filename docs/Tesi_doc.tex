@@ -1,0 +1,664 @@
+﻿\documentclass[11pt, a4paper]{report}
+
+\usepackage[a4paper, margin=2.2cm]{geometry}
+\usepackage{fontspec}
+\usepackage[italian, bidi=basic, provide=*]{babel}
+\babelprovide[import, onchar=ids fonts]{italian}
+\babelfont{rm}{Noto Sans}
+\babelfont{tt}{Noto Sans Mono}
+
+\usepackage{amsmath, amssymb}
+\usepackage{booktabs, tabularx, array, longtable}
+\usepackage{graphicx}
+\usepackage{listings}
+\usepackage[table]{xcolor}
+\usepackage{enumitem}
+\usepackage{fancyhdr}
+\usepackage{titlesec}
+\usepackage{placeins}
+\usepackage[font=small, labelfont={bf, color=primaryColor}, textfont={it}, labelsep=period, margin=1cm, skip=8pt]{caption}
+\usepackage{hyperref}
+
+\definecolor{primaryColor}{RGB}{24, 58, 92}
+\definecolor{accentColor}{RGB}{41, 128, 185}
+\definecolor{lightBg}{RGB}{245, 248, 252}
+\definecolor{borderGray}{RGB}{210, 218, 226}
+
+\hypersetup{
+    colorlinks=true,
+    linkcolor=primaryColor,
+    urlcolor=accentColor,
+    pdftitle={Realizzazione di un metodo per la sintesi automatica di comportamenti collaborativi in sistemi multi-robot},
+    pdfauthor={Omar Dinari}
+}
+
+\pagestyle{fancy}
+\fancyhf{}
+\fancyfoot[C]{\small\thepage}
+\renewcommand{\headrulewidth}{0pt}
+
+\titleformat{\chapter}[display]
+  {\normalfont\Large\bfseries\color{primaryColor}}
+  {\chaptertitlename\ \thechapter}{10pt}{\LARGE}
+\titlespacing*{\chapter}{0pt}{-15pt}{15pt}
+
+\titleformat{\section}
+  {\normalfont\large\bfseries\color{primaryColor}}
+  {\thesection}{1em}{}
+\titleformat{\subsection}
+  {\normalfont\normalsize\bfseries\color{accentColor}}
+  {\thesubsection}{1em}{}
+
+\lstset{
+  basicstyle=\ttfamily\footnotesize,
+  backgroundcolor=\color{lightBg},
+  frame=single,
+  rulecolor=\color{borderGray},
+  breaklines=true,
+  columns=fullflexible,
+  keepspaces=true,
+  showstringspaces=false,
+  xleftmargin=4pt,
+  xrightmargin=4pt,
+  aboveskip=10pt,
+  belowskip=10pt
+}
+
+\setlist[itemize]{itemsep=2pt, topsep=4pt}
+\setlist[enumerate]{itemsep=2pt, topsep=4pt}
+
+\begin{document}
+
+\begin{titlepage}
+    \centering
+    \vspace*{0.8cm}
+    \begin{minipage}[c]{0.48\textwidth}
+        \centering
+        \IfFileExists{univaq_logo.PNG}{\includegraphics[height=3cm, keepaspectratio]{univaq_logo.PNG}}{\framebox{\parbox{0.85\linewidth}{\centering\vspace{1.2cm}\textbf{UniversitÃ  degli Studi dell'Aquila}\vspace{1.2cm}}}}
+    \end{minipage}
+    \hfill
+    \begin{minipage}[c]{0.48\textwidth}
+        \centering
+        \IfFileExists{disim_logo.PNG}{\includegraphics[height=3cm, keepaspectratio]{disim_logo.PNG}}{\framebox{\parbox{0.85\linewidth}{\centering\vspace{1.2cm}\textbf{DISIM --- UnivAQ}\vspace{1.2cm}}}}
+    \end{minipage}
+    
+    \vspace{1.2cm}
+    {\Large\bfseries\color{primaryColor} UniversitÃ  degli Studi dell'Aquila \par}
+    \vspace{0.3cm}
+    {\large Dipartimento di Ingegneria e Scienze dell'Informazione e Matematica (DISIM) \par}
+    \vspace{0.3cm}
+    {\itshape Corso di Laurea Magistrale in Ingegneria Informatica --- Curriculum Advanced Software Engineering (ASE) \par}
+    
+    \vspace{1.6cm}
+    \rule{\textwidth}{1.5pt}\\[0.5cm]
+    {\Huge\bfseries\color{primaryColor} Realizzazione di un metodo per la sintesi automatica di comportamenti collaborativi in sistemi multi-robot \par}
+    \vspace{0.5cm}
+    \rule{\textwidth}{1.5pt}
+    
+    \vspace{1.6cm}
+    {\Large\bfseries\color{accentColor} Tesi di Laurea Magistrale \par}
+    \vspace{1.2cm}
+    
+    \begin{minipage}[t]{0.45\textwidth}
+        \raggedright
+        {\small\color{gray}\textsc{Relatore}}\\[4pt]
+        {\large\bfseries\color{primaryColor} Prof. Massimo Tivoli}
+    \end{minipage}
+    \hfill
+    \begin{minipage}[t]{0.45\textwidth}
+        \raggedleft
+        {\small\color{gray}\textsc{Laureando}}\\[4pt]
+        {\large\bfseries\color{primaryColor} Omar Dinari}
+    \end{minipage}
+    
+    \vfill
+    \rule{0.4\textwidth}{0.5pt}\\[6pt]
+    {\small\bfseries\color{primaryColor} Anno Accademico 2025/2026}
+\end{titlepage}
+
+\tableofcontents
+\clearpage
+
+\chapter{Introduzione, Contesto e Motivazioni}
+
+\section{Introduzione ai Sistemi Multi-Robot (MRS)}
+
+Nei moderni contesti applicativi dell'ingegneria del software e dell'automazione, quali l'agricoltura di precisione, la logistica di magazzino, il soccorso in ambienti ostili e il monitoraggio ambientale, l'impiego di un singolo robot monolitico presenta limiti intrinseci di scalabilitÃ , robustezza e tolleranza ai guasti. Al contrario, un \textbf{Sistema Multi-Robot (Multi-Robot System - MRS)} Ã¨ composto da una flotta di entitÃ  autonome, fisicamente distribuite ed eterogenee, che collaborano per raggiungere un obiettivo di missione globale non conseguibile da un singolo agente operante in isolamento.
+
+Ciascun robot possiede capacitÃ  sensoriali, attuative e computazionali specifiche. Tuttavia, la presenza di eterogeneitÃ  hardware e software introduce sfide critiche:
+\begin{itemize}
+    \item \textbf{Disaccoppiamento dei cicli di vita}: ogni robot esegue il proprio processo di controllo in modo asincrono;
+    \item \textbf{Canali di comunicazione inaffidabili}: lo scambio di messaggi wireless puÃ² presentare latenze variabili e buffer di ricezione finiti;
+    \item \textbf{Assenza di memoria condivisa}: la collaborazione deve realizzarsi esclusivamente mediante protocolli di scambio messaggi espliciti;
+    \item \textbf{Autonomia operativa}: i robot devono continuare ad assolvere compiti locali senza attendere costantemente direttive esterne.
+\end{itemize}
+
+\section{Architetture di Coordinamento a Confronto}
+
+La letteratura scientifica classifica le architetture di coordinamento nei sistemi multi-robot in quattro categorie fondamentali:
+
+\begin{table}[h!]
+\centering
+\small
+\renewcommand{\arraystretch}{1.3}
+\begin{tabularx}{\textwidth}{>{\bfseries}l X X X}
+\toprule
+\rowcolor{lightBg}
+Architettura & Struttura di Controllo & Vantaggi & Svantaggi \\
+\midrule
+Centralizzata & Un unico controllore Master dirige tutti i nodi Slave & SemplicitÃ  logica; visione globale dello stato della missione & Single point of failure; collo di bottiglia. \\
+\hline
+Gerarchica & Nodi di controllo ad albero su piÃ¹ livelli decisionali & Migliore scalabilitÃ  rispetto al modello centralizzato puro & RigiditÃ  di riconfigurazione dinamica. \\
+\hline
+Ibrida & Controllo locale distribuito con supervisori globali & FlessibilitÃ  operativa; buon compromesso reattivitÃ /decisione & Elevata complessitÃ  di design. \\
+\hline
+Decentralizzata (Distribuita) & Nessun coordinatore master; interazione peer-to-peer basata su coreografia & Massima robustezza; scalabilitÃ  illimitata; tolleranza ai guasti fisici & Elevato rischio di deadlock o divergenza. \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+L'architettura \textbf{decentralizzata (peer-to-peer)} rappresenta la scelta piÃ¹ indicata per scenari operativi in campo aperto (come l'agricoltura o il disastro ambientale), dove la connettivitÃ  verso una stazione centrale puÃ² venire meno e i robot devono essere in grado di coordinarsi autonomamente.
+
+\section{Il Problema Fondamentale del Coordinamento Distribuito}
+
+Nel coordinamento puramente distribuito, il problema centrale, come ampiamente approfondito nella tesi di riferimento di Giovanni Spaziani, consiste nell'assicurare che l'insieme dei processi operativi eseguiti localmente dai singoli robot dia luogo a un comportamento collettivo globale privo di deadlock, consistente rispetto all'ordine logico dei task e rispettoso delle dipendenze di dato della missione, \textbf{senza richiedere l'intervento di un controllore centralizzato}.
+
+Partendo dai soli modelli operativi di base (i \textit{processi locali} non coordinati che descrivono i compiti interni eseguiti dal robot da solo) e da una \textit{specifica globale astratta} (la coreografia di alto livello), la sintesi manuale del coordinamento distribuito Ã¨ un'attivitÃ  altamente incline a errori umani. Gli ingegneri dovrebbero identificare manualmente:
+\begin{enumerate}
+    \item Quali task interni producono dati rilevanti per la collaborazione pubblica;
+    \item Quali robot remoti necessitano di tali informazioni;
+    \item Se i tipi di dato e i concetti semantici espressi dai robot sono reciprocamente compatibili;
+    \item In quale posizione esatta del diagramma di processo locale iniettare le attivitÃ  di invio (\textit{Send Task}) e ricezione (\textit{Receive Task});
+    \item Come garantire che l'iniezione non crei stalli (\textit{deadlock}), vicoli ciechi (\textit{dead-ends}) o corse critiche (\textit{race conditions}).
+\end{enumerate}
+
+\section{Scopo della Tesi e Posizionamento del Framework}
+
+La tesi di riferimento di Giovanni Spaziani, svolta presso il DISIM dell'UniversitÃ  degli Studi dell'Aquila con il Prof. Massimo Tivoli, affronta questo problema proponendo un \textbf{Metodo Automatico di Sintesi della Collaborazione tra MRS}.
+
+Il presente lavoro di tesi magistrale, redatto da \textbf{Omar Dinari}, si pone in diretta continuitÃ  con la precedente ricerca teorica e metodologica di Giovanni Spaziani (svolta anch'essa presso il DISIM dell'UniversitÃ  degli Studi dell'Aquila sotto la supervisione del Prof. Massimo Tivoli), nella quale era stato formalizzato a livello concettuale il Metodo Automatico di Sintesi della Collaborazione tra Sistemi Multi-Robot. Nello specifico, mentre il lavoro di Spaziani ha definito le basi formali e le regole astratte di sintesi, il contributo originale della presente tesi consiste nella progettazione ingegneristica, nell'implementazione computazionale completa e nell'estensione avanzata del framework software \textbf{MRS Synthesis Engine} (integrando ragionamento semantico ibrido con LLM, simulazione deterministica dei contratti di stato, generazione automatica dei layout BPMNDI/Draw.io e uno studio web interattivo in tempo reale).
+
+Il framework software oggetto di questa documentazione, denominato \textbf{MRS Synthesis Engine}, costituisce la piena implementazione computazionale, formalizzazione ed estensione di tale metodo. Il sistema riceve in ingresso:
+\begin{itemize}
+    \item I processi locali BPMN dei singoli robot (modellanti le azioni basilari);
+    \item Il modello BPMN della Coreografia Globale della missione;
+    \item Le specifiche semantiche e ontologiche dei messaggi e dei tipi di dato scambiati (\texttt{semantics.json} e \texttt{taxonomy.json});
+    \item Le configurazioni opzionali dei contratti di stato comportamentale (\texttt{behavioral-state.json}).
+\end{itemize}
+
+Il motore elabora tali ingressi e genera in uscita:
+\begin{itemize}
+    \item I \textbf{diagrammi BPMN locali migliorati (Enhanced BPMN Models)} per ciascun robot, contenenti i punti di invio e ricezione correttamente cablati e sincronizzati;
+    \item Il \textbf{Diagramma di Collaborazione Unificato (Unified Mission Collaboration Diagram)} in cui tutte le pool dei robot e la coreografia sono allineate visivamente con flussi di messaggi inter-pool (\textit{MessageFlow});
+    \item I diagrammi visuali compatibili con \textbf{Draw.io / diagrams.net};
+    \item Un ambiente di sviluppo e ispezione interattivo dotato di Web Server REST, streaming real-time degli eventi (SSE) e canvas BPMN.io.
+\end{itemize}
+
+\section{Introduzione al Caso di Studio: Precision Agriculture}
+
+Per dimostrare l'efficacia del metodo automatico, sia la tesi sia il framework implementativo adottano come scenario applicativo di riferimento una missione di \textbf{Agricoltura di Precisione (Precision Agriculture)} cooperativa, condotta da una flotta di quattro robot eterogenei. La sequenza delle responsabilitÃ  operative si articola come segue:
+
+\begin{enumerate}
+    \item \textbf{Drone (Robot Aereo)}: Sorvola il campo agricolo, analizza le immagini tramite sensori ottici multispettrali, individua la zona infestata da erbacce e seleziona il trattore piÃ¹ idoneo e vicino.
+    \item \textbf{Tagliatore (Trattore di Superficie)}: Autovaluta il proprio stato e la propria disponibilitÃ  operativa, comunica la propria idoneitÃ , riceve l'assegnazione dell'area dal Drone, naviga fino alla zona designata e taglia le erbacce, lasciando il terreno pulito.
+    \item \textbf{Scavatore (Macchina Operatrice)}: Attende che il campo sia stato liberato dal Tagliatore, si porta sui punti designati ed esegue l'aratura e lo scavo dei solchi necessari alla posa dei semi.
+    \item \textbf{Seminatore (Robot Specializzato)}: Attende la conclusione dello scavo, deposita con precisione le sementi nei solchi, compatta il terreno e dichiara conclusa la missione agricola.
+\end{enumerate}
+
+Come illustrato in Figura~\ref{fig:flusso_missione}, la cooperazione tra i quattro agenti segue una catena sequenziale di scambio messaggi che coordina l'intera bonifica e semina del campo agricolo.
+
+\begin{figure}[h!]
+    \centering
+    \IfFileExists{Flusso_Missione_Agricola.png}{\includegraphics[width=0.95\textwidth]{Flusso_Missione_Agricola.png}}{\framebox{\parbox{0.85\textwidth}{\centering\vspace{1.2cm}\textbf{Immagine: Flusso\_Missione\_Agricola.png}\vspace{1.2cm}}}}
+    \caption{Flusso operativo ad alto livello della missione di Precision Agriculture e relativi messaggi scambiati tra i quattro robot.}
+    \label{fig:flusso_missione}
+\end{figure}
+
+
+\chapter{Background Teorico e Fondamenti Formali}
+
+\section{Coreografie di Servizi: Definizione Formale e Semantica}
+
+Il concetto di \textbf{coreografia} trae origine dall'architettura orientata ai servizi (Service-Oriented Architecture - SOA) e descrive il comportamento di cooperazione multi-partecipante da una prospettiva globale ``super partes''. 
+
+A differenza dell'\textbf{orchestrazione} (in cui un'entitÃ  centrale governa il flusso di esecuzione invocando gli altri partecipanti), una coreografia definisce:
+\begin{itemize}
+    \item L'insieme dei partecipanti autorizzati a interagire;
+    \item I messaggi che essi possono o devono scambiarsi;
+    \item I vincoli di ordinamento parziale temporale e logico tra gli scambi di messaggi.
+\end{itemize}
+
+Formalmente, una coreografia puÃ² essere vista come un automa a stati finiti o un \textbf{Labeled Transition System (LTS)} globale:
+
+$$\mathcal{C} = \langle S, S_0, \mathcal{A}, \Delta, F \rangle$$
+
+dove:
+\begin{itemize}
+    \item $S$ Ã¨ l'insieme finito degli stati globali della cooperazione;
+    \item $S_0 \in S$ Ã¨ lo stato iniziale della missione;
+    \item $\mathcal{A}$ Ã¨ l'alfabeto delle interazioni elementari, ciascuna modellata come una tripla $\langle m, P_{mittente}, P_{destinatario} \rangle$;
+    \item $\Delta \subseteq S \times \mathcal{A} \times S$ Ã¨ la relazione di transizione;
+    \item $F \subseteq S$ Ã¨ l'insieme degli stati finali ammissibili.
+\end{itemize}
+
+\section{Specifica di Coreografie mediante BPMN 2.0}
+
+La notazione \textbf{BPMN 2.0 (Business Process Model and Notation)} standardizzata da OMG costituisce il linguaggio grafico e formale d'elezione per modellare sia i processi locali dei singoli robot, sia la coreografia globale.
+
+La specifica BPMN 2.0 definisce due costrutti primari con scopi profondamente differenti:
+
+\begin{table}[h!]
+\centering
+\small
+\renewcommand{\arraystretch}{1.3}
+\begin{tabularx}{\textwidth}{>{\bfseries}l X X}
+\toprule
+\rowcolor{lightBg}
+Costrutto BPMN 2.0 & Choreography Diagram & Collaboration Diagram \\
+\midrule
+Punto di vista & Globale (``vista aerea'') & Puntuale (``peer-to-peer'') \\
+Elemento principale & Choreography Task & Pool / Lane separate \\
+Flusso di controllo & Sequence Flow tra interazioni & Sequence Flow interno al robot \\
+Comunicazione & Contenuta nel task & Message Flow tra Pool distinte \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\subsection{Componenti Fondamentali della Notazione BPMN:}
+
+\begin{enumerate}
+    \item \textbf{Choreography Task}: Un rettangolo arrotondato suddiviso in tre bande orizzontali:
+    \begin{itemize}
+        \item \textit{Banda Superiore}: Il partecipante iniziatore/mittente (sfondo bianco);
+        \item \textit{Banda Centrale}: Il nome dell'interazione o del messaggio scambiato;
+        \item \textit{Banda Inferiore}: Il partecipante ricevente/destinatario (sfondo ombreggiato).
+    \end{itemize}
+    \item \textbf{Service Task}: Rappresenta un'attivitÃ  locale e interna eseguita dal robot in isolamento (contrassegnata dall'icona a ingranaggio). Non genera direttamente messaggi esterni.
+    \item \textbf{Send Task}: AttivitÃ  con icona a busta piena (nera), che modella l'emissione asincrona di un messaggio verso un altro partecipante.
+    \item \textbf{Receive Task}: AttivitÃ  con icona a busta vuota (bianca), che modella l'attesa e la ricezione bloccante di un messaggio atteso.
+    \item \textbf{Gateways}:
+    \begin{itemize}
+        \item \textit{Parallel Gateway (+)}: Divergenza (fork) per l'avvio concorrente di rami paralleli; convergenza (join) per la sincronizzazione obbligatoria di tutti i rami in ingresso.
+        \item \textit{Exclusive Gateway (X)}: Scelta condizionale deterministica basata su guardie booleane disgiunte.
+    \end{itemize}
+    \item \textbf{Eventi di Controllo}:
+    \begin{itemize}
+        \item \textit{Start Event (Cerchio Verde/Sottile)}: Inizio del processo;
+        \item \textit{End Event (Cerchio Rosso/Spesso)}: Terminazione con successo del processo;
+        \item \textit{Intermediate Catch Event (Doppio cerchio con orologio)}: Sospensione temporanea del flusso per una durata prefissata (Timer Event).
+    \end{itemize}
+\end{enumerate}
+
+\section{Il Problema della Realizability nei Sistemi Multi-Robot}
+
+Una coreografia astratta $\mathcal{C}$ si definisce \textbf{realizzabile (realizable)} se e solo se esiste un insieme di comportamenti locali distribuiti $\{B_1, B_2, \dots, B_n\}$ (uno per ciascun partecipante $P_i$) la cui esecuzione asincrona e concorrente produce esattamente lo stesso insieme di tracce di comunicazione ammesse dalla coreografia globale, senza introdurre deadlock, violazioni di vincoli o comunicazioni spurie:
+
+$$\mathcal{L}(B_1 \parallel B_2 \parallel \dots \parallel B_n) = \mathcal{L}(\mathcal{C})$$
+
+Nei Sistemi Multi-Robot operanti con comunicazioni distribuite, la non-realizzabilitÃ  si manifesta tipicamente a causa di tre patologie:
+\begin{enumerate}
+    \item \textbf{Inconsistenza di Ordinamento Temporale}: Un partecipante $P_3$ riceve un messaggio da $P_2$ prima che $P_2$ abbia ricevuto la notifica da $P_1$, a causa di latenze asimmetriche nei canali radio.
+    \item \textbf{Deadlock da Attesa Circolare}: Due o piÃ¹ robot entrano in una situazione di blocco mutuo in cui ciascuno attende un messaggio dall'altro (es. $R_1$ attende $R_2$ prima di inviare $m_1$, ma $R_2$ attende $m_1$ per sbloccare la propria ricezione).
+    \item \textbf{Corsa Critica e Perdita di Messaggi nei Buffer}: Se un robot trasmette messaggi a raffica senza che il ricevente abbia raggiunto il corrispondente stato di ricezione (\textit{Receive Task}), i messaggi possono andare persi se la dimensione del buffer locale (queue 1-bounded) Ã¨ superata.
+\end{enumerate}
+
+\section{Strategie di Risoluzione della Realizability e Coordination Delegates}
+
+Per fronteggiare il problema della realizzabilitÃ , la letteratura individua tre approcci metodologici:
+\begin{itemize}
+    \item \textbf{Verifica Statica}: Analisi preventiva dei modelli mediante model checking (es. SPIN, PRISM, Uppaal) per identificare cicli negativi e violazioni prima del deployment;
+    \item \textbf{Choreography Repair}: Riscrittura algoritmica della coreografia per eliminare le ambiguitÃ  strutturali;
+    \item \textbf{Runtime Enforcement mediante Coordination Delegates (CDs)}: Introduzione di componenti software intermediari (delegati di coordinamento) collocati a fianco di ciascun robot. I CD intercettano i messaggi in transito e applicano politiche di bufferizzazione, serializzazione e re-inoltro per forzare il sistema distribuito a rispettare l'ordine coreografico prescritto.
+\end{itemize}
+
+\section{Le Quattro Fasi dell'Approccio Formale}
+
+Nel quadro metodologico della tesi, il paradigma generale per garantire la cooperazione si articola su quattro fasi:
+
+\begin{table}[h!]
+\centering
+\small
+\renewcommand{\arraystretch}{1.3}
+\begin{tabularx}{\textwidth}{>{\bfseries}l X X X}
+\toprule
+\rowcolor{lightBg}
+Fase & Input & Output & Livello di Astrazione \\
+\midrule
+Proiezione (Projection) & Coreografia Globale & Comportamenti Locali Astratti dei Partecipanti & Astratto \\
+\hline
+Selezione (Selection) & Service Inventory (Robot disponibili) & Partecipanti Concreti Compatibili Selezionati & Concreto (senza coordinamento) \\
+\hline
+Sintesi (Synthesis) & Coreografia Globale + Partecipanti Selezionati & CD Abstract Behavior (Logica di Coordinamento) & Astratto (Logica pura) \\
+\hline
+Concretizzazione (Concretization) & CD Abstract Behavior & CD Concrete Behavior (Code e socket 1-bound) & Concreto (Eseguibile) \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+Mentre la formalizzazione generale prevede la generazione di Coordination Delegates esterni, il \textbf{Metodo Automatico del Capitolo 5} sintetizza la collaborazione \textbf{iniettando direttamente la logica di coordinamento nei processi locali dei robot}, eliminando il sovraccarico architetturale di delegati esterni separati.
+
+
+\chapter{Metodologia di Sintesi Automatica della Collaborazione}
+
+\section{I Principi Fondamentali del Metodo Automatico (Capitolo 5 della Tesi)}
+
+Il Capitolo 5 della tesi di riferimento di Giovanni Spaziani formalizza il cuore innovativo della ricerca: il \textbf{Metodo Automatico per la Collaborazione tra MRS}.
+
+Il principio fondante su cui poggia l'intero impianto metodologico Ã¨ enunciato come segue:
+
+\begin{quote}
+\textit{``Ogni interazione tra robot nasce nel momento esatto in cui un robot produce un'informazione pubblica che un altro robot deve consumare per consentire la prosecuzione del flusso operativo della missione comune.''}
+\end{quote}
+
+Il metodo non impone ai progettisti di riscrivere da capo il software di ciascun robot. Al contrario, esso opera come un sintetizzatore trasparente che assume come input:
+\begin{enumerate}
+    \item \textbf{I Processi Locali Originali}: diagrammi BPMN che descrivono i compiti elementari svolti da ciascun robot in modalitÃ  isolata (\textit{operazioni basilari});
+    \item \textbf{La Coreografia Globale BPMN}: specifica astratta di alto livello dei vincoli collaborativi e dei messaggi da scambiare;
+    \item \textbf{L'Ontologia Globale dei Tipi di Dato}: specifica delle relazioni tassonomiche e semantiche tra le informazioni trattate.
+\end{enumerate}
+
+\section{Le Sei Operazioni Fondamentali di Sintesi}
+
+Per ricostruire automaticamente il coordinamento distribuito, il metodo formale prescrive l'esecuzione delle seguenti \textbf{sei operazioni fondamentali}:
+
+\begin{enumerate}
+    \item \textbf{Analisi dei task interni}: Ispezione delle firme di input/output di ogni singola attivitÃ  locale dei robot partecipanti;
+    \item \textbf{Confronto delle informazioni}: Incrocio tra i dati resi pubblici dai produttori e i flussi di messaggio previsti nella coreografia globale;
+    \item \textbf{Verifica di compatibilitÃ  sintattica, strutturale e semantica}: Filtraggio rigoroso dei match candidati per escludere discordanze di tipo, campi mancanti o violazioni ontologiche;
+    \item \textbf{Determinazione dei robot destinatari}: Risoluzione delle ambiguitÃ  quando un messaggio puÃ² essere potenzialmente recapitato a molteplici partecipanti;
+    \item \textbf{Determinazione della modalitÃ  di attivazione}: Inferenza delle relazioni di concorrenza, sequenza o esclusione mutua tra i destinatari;
+    \item \textbf{Integrazione automatica nei processi locali (Weaving)}: Modifica strutturale del diagramma BPMN del robot mediante iniezione di \textit{Send Task} e \textit{Receive Task}, ricablando i \textit{Sequence Flow} senza violare la semantica originale.
+\end{enumerate}
+
+\section{Le Tre Fasi Computazionali Principali}
+
+Dal punto di vista dell'architettura logica e computazionale, la tesi magistrale raggruppa le sei operazioni in \textbf{tre macro-fasi sequenziali}:
+
+\subsection{STEP 1: Analisi dello Scambio Dati Input/Output}
+In questa prima fase il sistema analizza i metadati I/O di tutti i task locali e legge i flussi di messaggio della coreografia globale. Viene costruita una matrice preliminare di candidati di scambio dati $\mathcal{M}_{candidati} = \{\langle R_{prod}, T_{prod}, R_{cons}, T_{cons}, msg \rangle\}$. Il metodo non prende decisioni definitive in questa fase, ma individua tutti i potenziali accoppiamenti informativi.
+
+\subsection{STEP 2: Analisi della CompatibilitÃ  Semantica e di Correttezza Comportamentale}
+I candidati individuati nello STEP 1 vengono sottoposti a un rigoroso filtro a piÃ¹ livelli:
+\begin{itemize}
+    \item \textit{Verifica Sintattica e di Sottotipo}: compatibilitÃ  esatta di tipo (STRONG) o per sottotipo gerarchico (WEAK, con $T_{prod} \sqsubseteq T_{cons}$);
+    \item \textit{Verifica Strutturale dei Campi}: controllo puntuale affinchÃ© l'insieme dei campi attributo richiesti dal ricevente sia integralmente coperto dal produttore ($\mathcal{F}_{req} \subseteq \mathcal{F}_{prod}$);
+    \item \textit{Verifica della Coerenza Strutturale della Coreografia}: validazione dei punti di inizio/fine e assenza di cammini orfani sul grafo globale;
+    \item \textit{Verifica Semantica}: conformitÃ  ontologica del concetto associato all'informazione nel dominio della missione ($C_{prod} \sqsubseteq C_{req}$);
+    \item \textit{Analisi di Correttezza Comportamentale}: simulazione formale dell'impatto dell'iniezione sul processo locale del ricevente (raggiungibilitÃ  dello stato, assenza di vicoli ciechi, soddisfacimento dei contratti di stato su LTS).
+\end{itemize}
+
+\subsection{STEP 3: Sintesi dell'Intera Missione e Generazione BPMN}
+I match validati vengono aggregati in piani di interazione (\textit{InteractionPlan}). Il sistema deduce la modalitÃ  di fan-out (sequenziale, parallela o esclusiva) e attiva il modulo di \textbf{BPMN Flow Weaving}, che modifica i diagrammi locali clonati, inietta i nodi di comunicazione, calcola le coordinate visuali BPMNDI (\textit{Auto-Layout}) e produce il diagramma unificato di collaborazione.
+
+\section{Corrispondenza tra Metodologia Formale e Pipeline Implementativo}
+
+Nell'implementazione software del framework (\texttt{MultiRobotSynthesisEngine.java}), il flusso computazionale Ã¨ stato suddiviso ingegneristicamente in \textbf{sette passaggi implementativi}. Ãˆ fondamentale chiarire la corrispondenza biunivoca tra le 3 fasi formali della tesi e i 7 passaggi del codice:
+
+\begin{table}[h!]
+\centering
+\small
+\renewcommand{\arraystretch}{1.3}
+\begin{tabularx}{\textwidth}{>{\bfseries}l l X}
+\toprule
+\rowcolor{lightBg}
+Fase Formale Tesi & Operazione Tesi & Step Implementativo Codice (Engine Pipeline) \\
+\midrule
+FASE 1: Analisi I/O & Op. 1 & Step 1: Analisi processi locali (I/O Metadata) \\
+ & Op. 2 & Step 2: Estrazione flussi messaggio coreografia \\
+\hline
+FASE 2: CompatibilitÃ  e Analisi & Op. 3 & Step 3: Validazione sintattica, strutturale e semantica \\
+ & Op. 4 & Step 4: Analisi di correttezza comportamentale su LTS locale \\
+ & Op. 5 & Step 5: Pianificazione interazioni ($1 \to 1$ e $1 \to N$) \\
+\hline
+FASE 3: Sintesi Missione & Op. 6 & Step 6: BPMN Flow Weaving e proiezione controlli \\
+ & Op. 6 (visuale) & Step 7: Generazione Unified Diagram e Draw.io \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+Questa ripartizione garantisce il pieno disaccoppiamento tra la fase analitica (Step 1-2), la fase di validazione logica (Step 3-4-5) e la fase di manipolazione del codice XML/BPMN (Step 6-7).
+
+La Figura~\ref{fig:pipeline_7step} sintetizza visivamente l'architettura end-to-end della pipeline computazionale, evidenziando gli artefatti di ingresso, i sette passaggi di elaborazione interna e i modelli generati in uscita.
+
+\begin{figure}[htbp]
+    \centering
+    \IfFileExists{Pipeline_7Step.png}{\includegraphics[width=0.92\textwidth, height=0.38\textheight, keepaspectratio]{Pipeline_7Step.png}}{\framebox{\parbox{0.85\textwidth}{\centering\vspace{1.2cm}\textbf{Immagine: Pipeline\_7Step.png}\vspace{1.2cm}}}}
+    \caption{Architettura end-to-end della pipeline a 7 step eseguita da \texttt{MultiRobotSynthesisEngine}.}
+    \label{fig:pipeline_7step}
+\end{figure}
+
+\section{Distinzione tra Specifiche della Tesi ed Estensioni Software}
+
+Al fine di garantire la massima trasparenza scientifica, la tabella seguente documenta con precisione gli aspetti derivati direttamente dalla tesi e le estensioni implementative introdotte dal progetto:
+
+\begin{table}[h!]
+\centering
+\small
+\renewcommand{\arraystretch}{1.3}
+\begin{tabularx}{\textwidth}{>{\bfseries}l X X}
+\toprule
+\rowcolor{lightBg}
+Aspetto Metodologico & Tesi Spaziani & Framework MRS Synthesis Eng. \\
+\midrule
+Modello Formale & 6 Operazioni, 3 Macro-Fasi & 7 Passaggi modulari Java \\
+Rappresentazione Dati & Tipi di dato astratti & File JSON (\texttt{semantics.json}) \\
+Ontologia di Dominio & Subsumption teorica $A \sqsubseteq B$ & Tassonomia JSON e Fallback AI \\
+Valutazione Semantica & Concettuale / Manuale & Matcher Ibrido + LLM Cascade \\
+Analisi di Correttezza Comportamentale & Simulazione concettuale LTS & Algoritmo DFS/BFS a 4 livelli \\
+Modifica BPMN & Regole formali di riscrittura & Iniezione DOM Camunda 7.20 \\
+Disposizione Visuale & Diagrammi disegnati a mano & Layout BPMNDI + Draw.io XML \\
+Fruizione Utente & Modelli statici & Web Studio REST + Live SSE \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+
+\chapter{Algoritmi e Meccanismi di Verifica del Framework}
+
+\section{Verifica di CompatibilitÃ  Sintattica (STRONG, WEAK e Strutturale)}
+
+La verifica sintattica, implementata nella classe \texttt{SyntacticCompatibilityChecker.java} in conformitÃ  alla Sezione 5.4 della tesi, accerta che i dati emessi dal task produttore siano strutturalmente e tipologicamente consumabili dal task ricevente.
+
+Il sistema prevede tre livelli di controllo sintattico:
+
+\subsection{CompatibilitÃ  Forte (STRONG Type Equality)}
+Prescrive che il tipo dichiarato dal produttore coincida esattamente con quello atteso dal ricevente:
+
+$$\text{Compatible}_{STRONG}(T_{prod}, T_{req}) \iff \text{normalize}(T_{prod}) = \text{normalize}(T_{req})$$
+
+Ad esempio, se il Drone emette un dato di tipo \texttt{Boolean} e il Tagliatore richiede \texttt{Boolean}, la compatibilitÃ  STRONG Ã¨ soddisfatta.
+
+\subsection{CompatibilitÃ  Debole (WEAK Subtype Compatibility)}
+Si basa sulla nozione di sottotipo e subsumption tassonomica. Se il tipo $T_{prod}$ Ã¨ un sottotipo di $T_{req}$ ($T_{prod} \sqsubseteq T_{req}$), l'informazione trasmessa dal produttore contiene un livello di dettaglio maggiore o uguale rispetto a quello minimo atteso dal consumatore, rendendo il dato pienamente utilizzabile:
+
+$$\text{Compatible}_{WEAK}(T_{prod}, T_{req}) \iff T_{prod} \sqsubseteq T_{req}$$
+
+Nel dominio della missione, la relazione di specializzazione tra coordinate geografiche rispetta ad esempio $\text{CoordinateZona} \sqsubseteq \text{Coordinate}$.
+
+\subsection{CompatibilitÃ  Strutturale basata sui Campi (Field-Level Structural Match)}
+Qualora i tipi siano entitÃ  complesse composte da molteplici attributi, la compatibilitÃ  viene verificata confrontando gli insiemi dei campi dichiarati. Il produttore deve fornire un sovrainsieme dei campi richiesti dal consumatore:
+
+$$\mathcal{F}_{req} \subseteq \mathcal{F}_{prod}$$
+
+Nel metodo \texttt{isStructurallyCompatible(producedFields, requiredFields)}:
+\begin{itemize}
+    \item Ciascun campo Ã¨ normalizzato nella forma \texttt{nome:tipo} (es. \texttt{latitude:double}, \texttt{id:int});
+    \item Se il ricevente richiede \texttt{[latitude:double, longitude:double]} e il produttore genera \texttt{[latitude:double, longitude:double, tractorId:string]}, il controllo passa con successo;
+    \item Se anche un solo campo obbligatorio per il ricevente Ã¨ assente nel tipo prodotto, il controllo fallisce in modo deterministico (\textit{fail-closed}).
+\end{itemize}
+
+\section{Verifica di CompatibilitÃ  Semantica, Ontologie e Subsumption}
+
+La sola conformitÃ  sintattica non previene errori semantici: due informazioni possono possedere lo stesso tipo primitivo (es. \texttt{Double}) ma descrivere concetti operativi radicalmente disgiunti (es. \texttt{LivelloCaricaBatteria} rispetto ad \texttt{AltitudineVolo}).
+
+La classe \texttt{OntologyManager.java} implementa un gestore ontologico ispirato al framework \textit{Strawberry}, caricando le definizioni dal file \texttt{taxonomy.json}. L'ontologia modella due strutture disaccoppiate dal codice sorgente:
+\begin{enumerate}
+    \item \textbf{Gerarchia dei Tipi di Dato}: alberi di derivazione tassonomica tra tipi concreti (es. \texttt{CoordinateZona} e \texttt{CoordinateTrattoreVicino} che estendono il tipo base \texttt{Coordinate});
+    \item \textbf{Gerarchia dei Concetti Semantici}: relazioni di sussunzione ontologica tra ruoli astratti di missione:
+\end{enumerate}
+
+$$\text{Concept}_{specifico} \sqsubseteq \text{Concept}_{generale}$$
+
+Ad esempio, nel file \texttt{taxonomy.json} del progetto:
+$$\text{work\_area\_location} \sqsubseteq \text{physical\_location}$$
+$$\text{selected\_tractor\_location} \sqsubseteq \text{physical\_location}$$
+Il Drone che rileva la zona erbacce genera un'istanza del concetto \texttt{work\_area\_location}, pienamente compatibile con il ruolo atteso dal task operativo del trattore.
+
+\section{Ragionamento Semantico Ibrido e Integrazione LLM}
+
+La classe \texttt{AISemanticMatcher.java} orchestra la validazione semantica supportando tre modalitÃ  operative distinte:
+
+\subsection{Analisi Dettagliata delle ModalitÃ :}
+
+\subsubsection{1. ModalitÃ  HYBRID (Predefinita)}
+Costituisce la modalitÃ  di funzionamento standard del motore. La sua logica interna segue rigorosamente queste regole:
+\begin{enumerate}
+    \item Verifica preliminare di compatibilitÃ  sintattica (STRONG o WEAK);
+    \item Se i concetti semantici sono dichiarati in entrambi i task, il sistema interroga l'ontologia locale (\texttt{ontologyManager.isSemanticConceptCompatible}). 
+    \begin{itemize}
+        \item Se l'ontologia valida la sussunzione $\rightarrow$ \textbf{MATCH APPROVATO};
+        \item Se l'ontologia riscontra incompatibilitÃ  $\rightarrow$ \textbf{MATCH RIFIUTATO}. \textbf{In nessun caso il sistema attiva il fallback LLM se i concetti sono esplicitamente dichiarati e incompatibili} (risolvendo il requisito di non-ambiguitÃ  della tesi);
+    \end{itemize}
+    \item \textbf{Il fallback LLM viene attivato esclusivamente quando uno o entrambi i concetti ontologici sono assenti o vuoti}, demandando all'intelligenza generativa l'interpretazione del testo libero delle descrizioni funzionali.
+\end{enumerate}
+
+\subsubsection{2. ModalitÃ  ONTOLOGY\_STRICT}
+Esclude totalmente l'intelligenza artificiale generativa. Richiede la presenza formale dei concetti semantici in \texttt{taxonomy.json}. Se un concetto non Ã¨ presente nel file ontologico, la transazione viene respinta immediatamente.
+
+\subsubsection{3. ModalitÃ  LLM\_REASONER}
+Bypassa le rigiditÃ  tassonomiche formali ed esegue l'analisi semantica interpretando le descrizioni in linguaggio naturale mediante la classe \texttt{LLMClient.java}.
+
+\subsection{Architettura a Cascata di \texttt{LLMClient}:}
+La classe \texttt{LLMClient.java} implementa un meccanismo di fallback a piÃ¹ livelli (\textit{Cascade Strategy}):
+\begin{enumerate}
+    \item \textbf{Google Gemini Flash (Cloud AI con Auto-Discovery Dinamica)}: interroga l'endpoint REST di Google AI. Il client esegue un probing automatico dei modelli disponibili dando prioritÃ  a \texttt{gemini-2.0-flash}, \texttt{gemini-1.5-flash-latest}, \texttt{gemini-1.5-flash-001}, \texttt{gemini-1.5-flash-002} e \texttt{gemini-2.0-flash-exp}.
+    \item \textbf{OpenAI GPT-4o-mini (Cloud AI Secondario)}: invocato qualora le API di Gemini risultino non raggiungibili o esaurite per quota.
+    \item \textbf{Local Semantic Reasoner (Fallback Euristico Locale)}: componente deterministico integrato, privo di dipendenze di rete. Esegue l'analisi semantica delle stringhe testuali sfruttando lemmatizzazione ed euristiche di corrispondenza per il dominio agricolo (\texttt{erbacce}/\texttt{weed}, \texttt{taglio}/\texttt{lavoro}, \texttt{pronto}/\texttt{ready}, \texttt{scavo}/\texttt{dig}, \texttt{semina}/\texttt{seed}). Se le descrizioni sono prive di legami logici, fallisce in modo deterministico (\textit{Decision: FALSE}).
+\end{enumerate}
+
+\subsection{Risoluzione delle Credenziali (\texttt{resolveApiKey}):}
+Le chiavi API sono individuate controllando in ordine:
+\begin{enumerate}
+    \item Chiave esplicita iniettata a runtime via interfaccia web o metodo setter;
+    \item Variabili d'ambiente di sistema (\texttt{GEMINI\_API\_KEY}, \texttt{GOOGLE\_API\_KEY}, \texttt{OPENAI\_API\_KEY});
+    \item File locale \texttt{gemini.key} presente nella root di esecuzione del progetto.
+\end{enumerate}
+
+\section{Analisi di Correttezza Comportamentale e Simulazione dello Stato (LTS e Contratti)}
+
+Implementata nella classe \texttt{BehavioralCompatibilityTester.java} in aderenza alla Sezione 5.6 della tesi, l'analisi di correttezza comportamentale verifica che l'inserimento dell'interazione non introduca stalli operativi o violazioni dell'automa a stati del robot ricevente.
+
+L'analisi si struttura su \textbf{quattro livelli di conformitÃ  (Livelli A, B, C, D)}:
+
+\begin{table}[h!]
+\centering
+\small
+\renewcommand{\arraystretch}{1.3}
+\begin{tabularx}{\textwidth}{>{\bfseries}l X X X}
+\toprule
+\rowcolor{lightBg}
+Livello & ProprietÃ  Verificata & Algoritmo / Metodo & Criterio di Fallimento \\
+\midrule
+Liv. A & RaggiungibilitÃ  del task ricevente & BFS (Breadth-First Search) dallo StartEvent & Nessun cammino valido dallo Start al Task \\
+\hline
+Liv. B & Terminazione e assenza di dead-end & DFS ricorsiva con memoizzazione verso EndEvents & Presenza di vicoli ciechi o stalli locali \\
+\hline
+Liv. C & Soddisfacimento requisiti di input & Controllo su requiredDataTypes con OntologyManager & Tipo prodotto non presente negli input \\
+\hline
+Liv. D & Simulazione di stato contratti pre/post & \texttt{BehavioralStateSimulator}: accumulo effetti e verifica & Precondizione violata; stato contraddittorio \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\subsection{Simulazione Deterministica dei Contratti (\texttt{BehavioralStateSimulator.java}):}
+I task possono dichiarare precondizioni ed effetti nella forma \texttt{chiave=valore} (es. \texttt{campo\_libero=true}, \texttt{batteria=carica}).
+La classe \texttt{BehavioralStateSimulator}:
+\begin{enumerate}
+    \item Raccoglie lo stato iniziale definito in \texttt{behavioral-state.json};
+    \item Propaga gli effetti generati dai prefissi di esecuzione del robot produttore (\texttt{stateWithPriorInteractionEffects});
+    \item Simula l'esecuzione sequenziale delle attivitÃ  lungo ogni percorso che attraversa il task consumatore;
+    \item Se una precondizione richiesta da un task a valle non Ã¨ soddisfatta dal valore accumulato nello stato, il simulatore restituisce \texttt{Status.FAIL}, segnalando la violazione contrattuale.
+\end{enumerate}
+
+\section{Analisi Grafica della Coreografia Globale e Rilevamento Cicli (Tarjan SCC)}
+
+La classe \texttt{GlobalChoreographyAnalyzer.java} effettua un'analisi formale del grafo della coreografia globale. Per distinguere i cicli legittimi di riesecuzione (come i tentativi periodici di interrogazione di disponibilitÃ ) da loop infiniti errati, l'analizzatore impiega l'\textbf{algoritmo di Tarjan per la ricerca delle Componenti Fortemente Connesse (Strongly Connected Components - SCC)}.
+
+Un ciclo globale Ã¨ validato e ammesso \textbf{se e solo se} la componente fortemente connessa soddisfa il \textit{Pattern di Retry Controllato}:
+\begin{enumerate}
+    \item Contiene almeno un evento di attesa temporizzata (\textit{IntermediateCatchEvent} con definizione Timer);
+    \item Contiene almeno un bivio condizionale (\textit{ExclusiveGateway}) dotato di una guardia booleana che consenta l'uscita deterministica dal ciclo;
+    \item Tutti i flussi di sequenza interni al ciclo sono coerenti e raggiungibili.
+\end{enumerate}
+
+Se un ciclo non presenta un evento timer o una via di fuga condizionale, il framework emette una diagnostica bloccante di potenziale \textit{livelock}.
+
+\section{Pianificazione e Disambiguazione dei Destinatari (1 a 1 e 1 a N)}
+
+La classe \texttt{InteractionPlanner.java} (Sezione 5.7 della tesi) aggrega tutti i match validati generati da una medesima attivitÃ  di origine (\textit{anchor task}):
+
+\subsection{Regole di Disambiguazione dell'Attivazione:}
+\begin{enumerate}
+    \item \textbf{ModalitÃ  SEQUENCE (1 a 1 o 1 a N Sequenziale)}:
+    \begin{itemize}
+        \item Se il task produce un messaggio destinato a un unico ricevente, la modalitÃ  Ã¨ \texttt{SEQUENCE}.
+        \item Se il task produce messaggi per piÃ¹ destinatari, ma nella coreografia globale tali attivitÃ  sono poste in relazione di precedenza temporale stretta (verificata mediante ordinamento topologico totale \texttt{areTotallyOrdered}), i match sono ordinati per rango globale (\texttt{globalOrderRank}) e attivati in serie.
+    \end{itemize}
+    \item \textbf{ModalitÃ  PARALLEL (1 a N Parallelo)}:
+    \begin{itemize}
+        \item I task riceventi derivano da un \texttt{ParallelGateway} divergente comune nella coreografia globale, e ciascun messaggio percorre un ramo indipendente. Il motore programma l'invio simultaneo broadcast.
+    \end{itemize}
+    \item \textbf{ModalitÃ  EXCLUSIVE (1 a N Esclusivo)}:
+    \begin{itemize}
+        \item I destinatari sono separati da un \texttt{ExclusiveGateway} divergente, e ogni ramo possiede una guardia mutuamente esclusiva (es. \texttt{disponibile=true} rispetto a \texttt{disponibile=false}). Il robot mittente attiva solo il destinatario la cui guardia risulta verificata.
+    \end{itemize}
+    \item \textbf{ModalitÃ  UNRESOLVED (Fail-Closed)}:
+    \begin{itemize}
+        \item Qualora non vi sia evidenza strutturale certa nella coreografia sull'ordinamento dei destinatari, il pianificatore non inventa un comportamento arbitrario, ma etichetta il piano come \texttt{UNRESOLVED} segnalando la necessitÃ  di chiarire la specifica.
+    \end{itemize}
+\end{enumerate}
+
+
+\chapter{Il Caso di Studio Applicativo: Missione Agricola Multi-Robot}
+
+\section{Definizione dei Robot e delle Operazioni Basilari Locali}
+
+Questi processi locali, prima dell'elaborazione, sono del tutto disgiunti: non contengono riferimenti reciproci, nÃ© code di messaggistica. Le Figure~\ref{fig:drone_originale}, \ref{fig:tagliatore_originale}, \ref{fig:scavatore_originale} e \ref{fig:seminatore_originale} mostrano i processi locali isolati dei quattro robot prima dell'esecuzione della sintesi, composti esclusivamente da attivitÃ  interne prive di costrutti di comunicazione.
+
+\begin{figure}[htbp]
+    \centering
+    \IfFileExists{Drone.png}{\includegraphics[width=0.90\textwidth, height=0.25\textheight, keepaspectratio]{Drone.png}}{\framebox{\parbox{0.85\textwidth}{\centering\vspace{1.2cm}\textbf{Immagine: Drone.png}\vspace{1.2cm}}}}
+    \caption{Processo BPMN locale originale del robot \textit{Drone} (\texttt{Drone.bpmn}) prima della sintesi collaborativa.}
+    \label{fig:drone_originale}
+\end{figure}
+
+\begin{figure}[htbp]
+    \centering
+    \IfFileExists{Tagliatore.png}{\includegraphics[width=0.90\textwidth, height=0.25\textheight, keepaspectratio]{Tagliatore.png}}{\framebox{\parbox{0.85\textwidth}{\centering\vspace{1.2cm}\textbf{Immagine: Tagliatore.png}\vspace{1.2cm}}}}
+    \caption{Processo BPMN locale originale del robot \textit{Tagliatore} (\texttt{Tagliatore.bpmn}) prima della sintesi collaborativa.}
+    \label{fig:tagliatore_originale}
+\end{figure}
+
+\begin{figure}[htbp]
+    \centering
+    \IfFileExists{Scavatore.png}{\includegraphics[width=0.90\textwidth, height=0.25\textheight, keepaspectratio]{Scavatore.png}}{\framebox{\parbox{0.85\textwidth}{\centering\vspace{1.2cm}\textbf{Immagine: Scavatore.png}\vspace{1.2cm}}}}
+    \caption{Processo BPMN locale originale del robot \textit{Scavatore} (\texttt{Scavatore.bpmn}) prima della sintesi collaborativa.}
+    \label{fig:scavatore_originale}
+\end{figure}
+
+\begin{figure}[htbp]
+    \centering
+    \IfFileExists{Seminatore.png}{\includegraphics[width=0.90\textwidth, height=0.25\textheight, keepaspectratio]{Seminatore.png}}{\framebox{\parbox{0.85\textwidth}{\centering\vspace{1.2cm}\textbf{Immagine: Seminatore.png}\vspace{1.2cm}}}}
+    \caption{Processo BPMN locale originale del robot \textit{Seminatore} (\texttt{Seminatore.bpmn}) prima della sintesi collaborativa.}
+    \label{fig:seminatore_originale}
+\end{figure}
+\FloatBarrier
+
+\section{Analisi Dettagliata delle Interazioni End-to-End}
+
+Il motore di sintesi identifica e convalida esattamente \textbf{sei interazioni collaborative} tra i robot:
+
+\subsection{1. Interazione Drone $\rightarrow$ Tagliatore: \texttt{weedPosition}}
+\begin{itemize}
+    \item \textbf{Mittente}: Drone (\texttt{Task\_Coordinate}).
+    \item \textbf{Destinatari

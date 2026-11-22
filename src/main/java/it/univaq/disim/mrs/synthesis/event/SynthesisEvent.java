@@ -12,13 +12,17 @@ public class SynthesisEvent implements Serializable {
     public enum Type {
         PIPELINE_STARTED,
         STEP_STARTED,
+        INPUT_LOADED,
         ROBOT_LOADED,
         GLOBAL_MESSAGE_DISCOVERED,
         SYNTACTIC_CHECK,
+        INITIAL_DEPENDENCIES_TABLE,
         SEMANTIC_CHECK,
         BEHAVIORAL_CHECK,
+        REFINED_DEPENDENCIES_TABLE,
         PLAN_CREATED,
         WEAVING_TASK,
+        COLLABORATIVE_ROBOT_BEHAVIOR,
         DIAGNOSTIC,
         PIPELINE_COMPLETED
     }

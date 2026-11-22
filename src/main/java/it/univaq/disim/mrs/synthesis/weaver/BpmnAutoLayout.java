@@ -86,6 +86,7 @@ public class BpmnAutoLayout {
         if (plane != null) {
             double w1 = from instanceof Gateway ? 50 : ((from instanceof Event) ? 36 : 100);
             double h1 = from instanceof Gateway ? 50 : ((from instanceof Event) ? 36 : 80);
+            double w2 = to instanceof Gateway ? 50 : ((to instanceof Event) ? 36 : 100);
             double h2 = to instanceof Gateway ? 50 : ((to instanceof Event) ? 36 : 80);
 
             double fromX = getX(model, from);
@@ -93,7 +94,57 @@ public class BpmnAutoLayout {
             double toX = getX(model, to);
             double toY = getY(model, to);
 
-            BpmndiGenerator.createEdge(model, plane, flow, fromX + w1, fromY + (h1 / 2.0), toX, toY + (h2 / 2.0));
+            List<double[]> waypoints = new ArrayList<>();
+
+            if (toX < fromX) {
+                // BACKWARD LOOP (Feedback / Retry edge):
+                // Route cleanly through a clear corridor below all nodes, with 90° angles (no diagonal slashes).
+                double startX = fromX + (w1 / 2.0);
+                double startY = fromY + h1;
+                double corridorY = Math.max(fromY + h1, toY + h2) + 50.0;
+                double endX = toX + (w2 / 2.0);
+                double endY = toY + h2;
+
+                waypoints.add(new double[]{startX, startY});
+                waypoints.add(new double[]{startX, corridorY});
+                waypoints.add(new double[]{endX, corridorY});
+                waypoints.add(new double[]{endX, endY});
+            } else if (from instanceof Gateway && toY > fromY + 40.0) {
+                // Gateway branching downwards (e.g. exclusive gateway down to timer event):
+                double startX = fromX + (w1 / 2.0);
+                double startY = fromY + h1;
+                double endX = toX + (w2 / 2.0);
+                double endY = toY;
+
+                if (Math.abs(startX - endX) < 5.0) {
+                    // Vertically aligned
+                    waypoints.add(new double[]{startX, startY});
+                    waypoints.add(new double[]{startX, endY});
+                } else {
+                    waypoints.add(new double[]{startX, startY});
+                    waypoints.add(new double[]{startX, endY - 20.0});
+                    waypoints.add(new double[]{endX, endY - 20.0});
+                    waypoints.add(new double[]{endX, endY});
+                }
+            } else if (Math.abs(fromY - toY) > 20.0) {
+                // Forward branch with vertical displacement (e.g. parallel branches):
+                double startX = fromX + w1;
+                double startY = fromY + (h1 / 2.0);
+                double endX = toX;
+                double endY = toY + (h2 / 2.0);
+                double midX = startX + ((endX - startX) / 2.0);
+
+                waypoints.add(new double[]{startX, startY});
+                waypoints.add(new double[]{midX, startY});
+                waypoints.add(new double[]{midX, endY});
+                waypoints.add(new double[]{endX, endY});
+            } else {
+                // Standard direct horizontal forward flow:
+                waypoints.add(new double[]{fromX + w1, fromY + (h1 / 2.0)});
+                waypoints.add(new double[]{toX, toY + (h2 / 2.0)});
+            }
+
+            BpmndiGenerator.createEdge(model, plane, flow, waypoints);
         }
         return flow;
     }

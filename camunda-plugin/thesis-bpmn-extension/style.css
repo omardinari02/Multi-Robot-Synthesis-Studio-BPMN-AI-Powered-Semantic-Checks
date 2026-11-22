@@ -1,0 +1,348 @@
+/* ==========================================================================
+   MRS Choreography BPMN Modeler Plugin v2
+   Stili per Overlay HTML cliccabili, Form Inline, Buste Interattive
+   Conforme alla notazione formale BPMN 2.0 Choreography
+   ========================================================================== */
+
+/* ──────────────────────────────────────────────────────────────────────────
+   1. ICONA PERSONALIZZATA nella Palette e Context Pad
+   ────────────────────────────────────────────────────────────────────────── */
+.entry.choreo-task-palette-entry,
+.bpmn-icon-choreography-task {
+  background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="%232C3E50" stroke-width="1.8"><rect x="2" y="3" width="20" height="18" rx="3" fill="%23FFFFFF"/><line x1="2" y1="8" x2="22" y2="8"/><line x1="2" y1="16" x2="22" y2="16"/><path d="M 2 16 L 22 16 L 22 18 Q 22 21 19 21 L 5 21 Q 2 21 2 18 Z" fill="%23EAEDED"/></svg>') !important;
+  background-repeat: no-repeat !important;
+  background-position: center !important;
+  background-size: 20px 20px !important;
+}
+
+/* ──────────────────────────────────────────────────────────────────────────
+   2. BUSTA OVERLAY (cliccabile) – bianca e scura
+   ────────────────────────────────────────────────────────────────────────── */
+.choreo-envelope-overlay {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  cursor: pointer;
+  padding: 3px 6px 3px 3px;
+  border-radius: 6px;
+  transition: background-color 0.15s ease, box-shadow 0.15s ease, transform 0.1s ease;
+  white-space: nowrap;
+  user-select: none;
+  z-index: 10;
+}
+
+.choreo-envelope-overlay:hover {
+  transform: scale(1.04);
+}
+
+.choreo-envelope-white:hover {
+  background-color: rgba(41, 128, 185, 0.12);
+  box-shadow: 0 0 0 2.5px rgba(41, 128, 185, 0.35);
+}
+
+.choreo-envelope-dark:hover {
+  background-color: rgba(93, 109, 126, 0.15);
+  box-shadow: 0 0 0 2.5px rgba(93, 109, 126, 0.35);
+}
+
+.choreo-envelope-icon {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.choreo-envelope-label {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  font-size: 10.5px;
+  font-weight: 600;
+  color: #2C3E50;
+  letter-spacing: 0.2px;
+}
+
+/* ──────────────────────────────────────────────────────────────────────────
+   3. BOTTONE "+✉" PER AGGIUNGERE BUSTA MANCANTE
+   ────────────────────────────────────────────────────────────────────────── */
+.choreo-add-envelope {
+  display: inline-block;
+  padding: 3px 12px;
+  border-radius: 10px;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  font-size: 10px;
+  font-weight: bold;
+  cursor: pointer;
+  user-select: none;
+  transition: background-color 0.15s ease, box-shadow 0.15s ease;
+  white-space: nowrap;
+}
+
+.choreo-add-white {
+  background: #EBF5FB;
+  border: 1px solid #AED6F1;
+  color: #2980B9;
+}
+.choreo-add-white:hover {
+  background: #D4E6F1;
+  box-shadow: 0 0 0 2px rgba(41, 128, 185, 0.25);
+}
+
+.choreo-add-dark {
+  background: #EAEDED;
+  border: 1px solid #BDC3C7;
+  color: #5D6D7E;
+}
+.choreo-add-dark:hover {
+  background: #D5DBDB;
+  box-shadow: 0 0 0 2px rgba(93, 109, 126, 0.25);
+}
+
+/* ──────────────────────────────────────────────────────────────────────────
+   4. ICONA ✏️ (indicatore visivo "doppio clic per modificare")
+   ────────────────────────────────────────────────────────────────────────── */
+.choreo-edit-hint {
+  font-size: 13px;
+  opacity: 0.35;
+  cursor: pointer;
+  user-select: none;
+  transition: opacity 0.15s ease, transform 0.15s ease;
+  line-height: 1;
+}
+.choreo-edit-hint:hover {
+  opacity: 0.9;
+  transform: scale(1.25);
+}
+
+/* ──────────────────────────────────────────────────────────────────────────
+   4b. TOGGLE ||| MULTI-INSTANCE PARALLELO (overlay cliccabile)
+   ────────────────────────────────────────────────────────────────────────── */
+.choreo-parallel-toggle-btn {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: 8px;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  font-size: 10px;
+  font-weight: bold;
+  cursor: pointer;
+  user-select: none;
+  background: #F8F9FA;
+  border: 1.5px dashed #BDC3C7;
+  color: #95A5A6;
+  transition: all 0.15s ease;
+  letter-spacing: 1px;
+  white-space: nowrap;
+}
+.choreo-parallel-toggle-btn:hover {
+  background: #EBF5FB;
+  border-color: #2980B9;
+  color: #2980B9;
+  transform: scale(1.08);
+}
+.choreo-parallel-toggle-btn.choreo-parallel-active {
+  background: #EBF5FB;
+  border: 1.5px solid #2980B9;
+  color: #1B4F72;
+}
+.choreo-parallel-toggle-btn.choreo-parallel-active:hover {
+  background: #FADBD8;
+  border-color: #E74C3C;
+  color: #C0392B;
+}
+
+/* ──────────────────────────────────────────────────────────────────────────
+   4c. CHECKBOX PARALLELO nel pannello di modifica completo
+   ────────────────────────────────────────────────────────────────────────── */
+.choreo-parallel-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 10px;
+  padding: 6px 8px;
+  border-radius: 6px;
+  background: #F8F9FA;
+  border: 1px solid #EAECEE;
+}
+.choreo-parallel-checkbox {
+  width: 15px;
+  height: 15px;
+  cursor: pointer;
+  accent-color: #2980B9;
+}
+.choreo-parallel-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: #2C3E50;
+  cursor: pointer;
+  letter-spacing: 0.5px;
+}
+
+/* ──────────────────────────────────────────────────────────────────────────
+   5. DIALOG DI MODIFICA INLINE (singolo campo o completo)
+   ────────────────────────────────────────────────────────────────────────── */
+.choreo-edit-dialog {
+  background: #FFFFFF;
+  border: 2px solid #2980B9;
+  border-radius: 10px;
+  padding: 14px 16px;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.22), 0 2px 8px rgba(0, 0, 0, 0.1);
+  min-width: 230px;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  z-index: 200;
+  animation: choreoDialogFadeIn 0.15s ease-out;
+}
+
+.choreo-edit-full {
+  min-width: 280px;
+}
+
+@keyframes choreoDialogFadeIn {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.choreo-edit-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: #1B4F72;
+  margin-bottom: 10px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid #EAECEE;
+}
+
+.choreo-field-label {
+  display: block;
+  font-size: 10.5px;
+  font-weight: 600;
+  color: #5D6D7E;
+  margin-top: 8px;
+  margin-bottom: 3px;
+}
+
+.choreo-edit-input {
+  width: 100%;
+  padding: 6px 10px;
+  border: 1.5px solid #D5D8DC;
+  border-radius: 5px;
+  font-size: 12px;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  outline: none;
+  box-sizing: border-box;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.choreo-edit-input:focus {
+  border-color: #2980B9;
+  box-shadow: 0 0 0 3px rgba(41, 128, 185, 0.18);
+}
+
+.choreo-edit-actions {
+  margin-top: 12px;
+  display: flex;
+  gap: 7px;
+  flex-wrap: wrap;
+}
+
+.choreo-btn {
+  padding: 6px 13px;
+  border: none;
+  border-radius: 5px;
+  font-size: 11.5px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  transition: background-color 0.12s ease, transform 0.1s ease;
+}
+.choreo-btn:hover {
+  transform: translateY(-1px);
+}
+.choreo-btn:active {
+  transform: translateY(0);
+}
+
+.choreo-btn-confirm {
+  background: #27AE60;
+  color: white;
+}
+.choreo-btn-confirm:hover { background: #219A52; }
+
+.choreo-btn-cancel {
+  background: #BDC3C7;
+  color: #2C3E50;
+}
+.choreo-btn-cancel:hover { background: #A6ACAF; }
+
+.choreo-btn-delete {
+  background: #E74C3C;
+  color: white;
+}
+.choreo-btn-delete:hover { background: #CB4335; }
+
+/* ──────────────────────────────────────────────────────────────────────────
+   6. STILI BPMN PER EVENTI, GATEWAY, SERVICE TASK
+   ────────────────────────────────────────────────────────────────────────── */
+
+/* Inizio Evento (cerchio verde) */
+.djs-element[data-element-id*="Start_Pieno"] .djs-visual circle,
+.djs-element[data-element-id="StartEvent_1"] .djs-visual circle {
+  stroke: #27AE60 !important;
+  fill: #27AE60 !important;
+  stroke-width: 2px !important;
+}
+.djs-element[data-element-id*="Start_Vuoto"] .djs-visual circle {
+  stroke: #2C3E50 !important;
+  fill: #FFFFFF !important;
+  stroke-width: 1.5px !important;
+}
+
+/* Fine Evento (cerchio rosso) */
+.djs-element[data-element-id*="End_Pieno"] .djs-visual circle,
+.djs-element[data-element-id="EndEvent_1"] .djs-visual circle {
+  stroke: #C0392B !important;
+  fill: #C0392B !important;
+  stroke-width: 2px !important;
+}
+.djs-element[data-element-id*="End_Vuoto"] .djs-visual circle {
+  stroke: #2C3E50 !important;
+  fill: #FFFFFF !important;
+  stroke-width: 4px !important;
+}
+
+/* Service Task */
+.djs-element[data-element-id*="Service"] .djs-visual rect {
+  stroke: #2980B9 !important;
+  fill: #F4F6F6 !important;
+  stroke-width: 2px !important;
+}
+
+/* Send / Receive */
+.djs-element[data-element-id*="Send"] .djs-visual rect {
+  stroke: #2C3E50 !important;
+  fill: #FFFFFF !important;
+  stroke-width: 1.8px !important;
+}
+.djs-element[data-element-id*="Receive"] .djs-visual rect {
+  stroke: #2C3E50 !important;
+  fill: #5D6D7E !important;
+  stroke-width: 1.8px !important;
+}
+.djs-element[data-element-id*="Receive"] .djs-visual text {
+  fill: #FFFFFF !important;
+}
+
+/* Gateway */
+.djs-element[data-element-id*="Gateway"] .djs-visual polygon {
+  stroke: #2C3E50 !important;
+  fill: #FFFFFF !important;
+  stroke-width: 2.5px !important;
+}
+
+/* Timer Event */
+.djs-element[data-element-id*="Timer"] .djs-visual circle {
+  stroke: #2C3E50 !important;
+  stroke-width: 2px !important;
+}
+
+/* ──────────────────────────────────────────────────────────────────────────
+   7. TIPOGRAFIA GLOBALE
+   ────────────────────────────────────────────────────────────────────────── */
+.djs-element text {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif !important;
+}
